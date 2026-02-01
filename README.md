@@ -1,73 +1,66 @@
-# React + TypeScript + Vite
+# GasStrom - Consumption Monitor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+GasStrom is a modern web application designed to help you track and analyze your household electricity and gas consumption. It provides an intuitive interface for recording meter readings, visualizing data trends, and even automating data entry using AI.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Dual Meter Support**: Dedicated tracking for both Electricity (kWh) and Gas (m³).
+- **AI Photo Analysis**: Upload a photo of your meter, and let **Google Gemini AI** automatically extract the date and reading value for you.
+- **Interactive Dashboards**: Visualize your consumption with dynamic charts (Recharts) comparing current usage against previous years.
+- **History Management**: Complete log of all your readings with options to manage entries.
+- **Data Privacy**: Your data interacts with a local backend or browser storage (Dexie.js), keeping it under your control.
+- **Import/Export**: Easy JSON export/import functionality for backups or data migration.
+- **Responsive Design**: Optimized for both desktop and mobile use.
 
-## React Compiler
+## 🛠️ Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend**: React 19, TypeScript, Vite
+- **Styling**: Modern CSS with utility classes (Tailwind-like system), Lucide Icons
+- **Data Persistence**: Dexie.js (IndexedDB wrapper) & SQLite (Server-side)
+- **AI Integration**: Google Generative AI SDK (Gemini)
+- **Visualization**: Recharts
+- **Internationalization**: i18next (English & German support)
 
-## Expanding the ESLint configuration
+## 🚀 Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Prerequisites
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Node.js (v18 or higher recommended)
+- npm or yarn
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Installation
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/yourusername/gasstrom.git
+    cd gasstrom
+    ```
+
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+
+### Running the Application
+
+To start both the frontend and the backend server concurrently:
+
+```bash
+npm start
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- The frontend will typically run on `http://localhost:5173`
+- The backend server runs on the configured port (check server logs)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## ⚙️ Configuration
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Gemini AI API Key
+To use the **Photo Analyzer** feature, you need a Google Gemini API Key.
+1.  Get your key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+2.  In the app, click the **Settings** (gear icon) in the Photo Analyzer section.
+3.  Enter your API Key and save.
+4.  The key is stored locally in your browser/app settings.
+
+## 📄 License
+
+[MIT](LICENSE) (or whichever license is applicable)
