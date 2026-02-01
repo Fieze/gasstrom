@@ -262,10 +262,10 @@ export function PhotoAnalyzer({ onAnalysisComplete }: PhotoAnalyzerProps) {
                     </>
                 ) : (
                     <>
-                        <Camera size={24} />
-                        <div className="text-center">
-                            <span className="block font-medium">{t('photoAnalyzer.photoPlaceholder')}</span>
-                            <span className="text-xs opacity-70">{t('photoAnalyzer.poweredBy')}</span>
+                        <Camera size={24} className="flex-shrink-0" />
+                        <div className="text-center min-w-0 flex-1">
+                            <span className="block font-medium truncate">{t('photoAnalyzer.photoPlaceholder')}</span>
+                            <span className="text-xs opacity-70 block truncate">{t('photoAnalyzer.poweredBy')}</span>
                         </div>
                     </>
                 )}
