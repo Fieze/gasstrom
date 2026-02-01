@@ -5,14 +5,19 @@ import { useReadings } from './hooks/useReadings';
 import { ReadingForm } from './components/ReadingForm';
 import { MonthlyStats } from './components/MonthlyStats';
 import { CollapsibleSection } from './components/CollapsibleSection';
+import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { de, enUS } from 'date-fns/locale';
 import { Trash2, Zap, Flame, Download, Upload } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 function App() {
   const { readings, addReading, removeReading, importReadings, getReadingsByType } = useReadings();
   const [activeTab, setActiveTab] = useState<MeterType>('electricity');
   const currentReadings = getReadingsByType(activeTab);
+  const { t, i18n } = useTranslation();
+
+  const dateLocale = i18n.resolvedLanguage === 'de' ? de : enUS;
 
   const handleExport = () => {
     const dataStr = JSON.stringify(readings, null, 2);
@@ -40,14 +45,14 @@ function App() {
         if (Array.isArray(data)) {
           const success = await importReadings(data);
           if (success) {
-            alert('Daten erfolgreich importiert!');
+            alert(t('sections.importExport.success'));
           } else {
-            alert('Fehler beim Importieren der Daten.');
+            alert(t('sections.importExport.errorImport'));
           }
         }
       } catch (err) {
         console.error('Import error', err);
-        alert('Fehler beim Lesen der Datei.');
+        alert(t('sections.importExport.errorRead'));
       }
     };
     reader.readAsText(file);
@@ -57,42 +62,43 @@ function App() {
 
   return (
     <div className="min-h-screen pb-20">
-      <header className="mb-8 pt-4">
-        <h1 className="text-3xl font-bold mb-2">Verbrauchsmonitor</h1>
-        <p className="text-muted">Erfasse und analysiere deine Zählerstände</p>
+      <header className="mb-8 pt-4 flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">{t('app.title')}</h1>
+          <p className="text-muted">{t('app.subtitle')}</p>
+        </div>
+        <LanguageSwitcher />
       </header>
 
-      <div className="flex gap-4 mb-8">
+      <div className="flex gap-6 mb-8">
         <button
           onClick={() => setActiveTab('electricity')}
           className={`flex-1 py-4 flex items-center justify-center gap-2 text-lg transition-all ${activeTab === 'electricity' ? 'bg-primary shadow-lg shadow-indigo-500/20' : 'bg-surface text-muted hover:bg-surface-hover'}`}
         >
           <Zap size={24} />
-          Strom
+          {t('app.tabs.electricity')}
         </button>
         <button
           onClick={() => setActiveTab('gas')}
           className={`flex-1 py-4 flex items-center justify-center gap-2 text-lg transition-all ${activeTab === 'gas' ? 'bg-secondary shadow-lg shadow-pink-500/20' : 'bg-surface text-muted hover:bg-surface-hover'}`}
         >
           <Flame size={24} />
-          Gas
+          {t('app.tabs.gas')}
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         <div className="lg:col-span-1 space-y-6">
           <section>
-            <h2 className="text-xl mb-4">Neuer Eintrag</h2>
+            <h2 className="text-xl mb-4">{t('sections.newEntry')}</h2>
             <ReadingForm type={activeTab} onSubmit={addReading} />
-
-
           </section>
         </div>
 
         <div className="lg:col-span-2 space-y-6">
           <section>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl">Auswertung</h2>
+              <h2 className="text-xl">{t('sections.analysis')}</h2>
             </div>
             <MonthlyStats readings={currentReadings} type={activeTab} />
           </section>
@@ -100,28 +106,28 @@ function App() {
       </div>
 
       <div className="space-y-4">
-        <CollapsibleSection title="Status & Informationen" defaultOpen={false}>
+        <CollapsibleSection title={t('sections.status.title')} defaultOpen={false}>
           <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20 text-sm">
-            <p className="font-semibold mb-1">Daten-Status</p>
-            <p>Anzahl Einträge ({activeTab}): {currentReadings.length}</p>
+            <p className="font-semibold mb-1">{t('sections.status.dataStatus')}</p>
+            <p>{t('sections.status.count', { type: activeTab === 'electricity' ? t('app.tabs.electricity') : t('app.tabs.gas') })}: {currentReadings.length}</p>
             {currentReadings.length < 2 && (
               <p className="text-yellow-400 mt-2">
-                Mindestens 2 Einträge benötigt für Diagramm.
+                {t('sections.status.minEntries')}
               </p>
             )}
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Historie" defaultOpen={false}>
+        <CollapsibleSection title={t('sections.history.title')} defaultOpen={false}>
           <div className="max-h-[500px] overflow-y-auto space-y-2">
             {currentReadings.length === 0 ? (
-              <p className="text-center text-muted py-4">Noch keine Einträge vorhanden.</p>
+              <p className="text-center text-muted py-4">{t('sections.history.empty')}</p>
             ) : (
               currentReadings.map(reading => (
                 <div key={reading.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors group border border-transparent hover:border-white/5">
                   <div>
                     <div className="font-medium">
-                      {format(parseISO(reading.date), 'dd. MMMM yyyy', { locale: de })}
+                      {format(parseISO(reading.date), 'dd. MMMM yyyy', { locale: dateLocale })}
                     </div>
                     <div className="text-sm text-muted">
                       {reading.value.toFixed(2)} {activeTab === 'electricity' ? 'kWh' : 'm³'}
@@ -130,7 +136,7 @@ function App() {
                   <button
                     onClick={() => removeReading(reading.id)}
                     className="p-2 text-muted hover:text-red-400 bg-transparent hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all"
-                    title="Löschen"
+                    title={t('sections.history.delete')}
                   >
                     <Trash2 size={16} />
                   </button>
@@ -140,17 +146,17 @@ function App() {
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Daten Import / Export" defaultOpen={false}>
-          <div className="flex gap-2">
+        <CollapsibleSection title={t('sections.importExport.title')} defaultOpen={false}>
+          <div className="flex gap-4">
             <button
               onClick={handleExport}
               className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/10"
-              title="Daten als JSON exportieren"
+              title={t('sections.importExport.export')}
             >
-              <Download size={16} /> Exportieren
+              <Download size={16} /> {t('sections.importExport.export')}
             </button>
             <label className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/10 cursor-pointer">
-              <Upload size={16} /> Importieren
+              <Upload size={16} /> {t('sections.importExport.import')}
               <input
                 type="file"
                 accept=".json"

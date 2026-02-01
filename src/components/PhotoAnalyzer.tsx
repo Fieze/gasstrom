@@ -4,12 +4,14 @@ import { Camera, Loader2, Settings, Save, RefreshCw } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import ExifReader from 'exifreader';
 import { parse, isValid } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 
 interface PhotoAnalyzerProps {
     onAnalysisComplete: (result: { date: string | null; value: number | null }) => void;
 }
 
 export function PhotoAnalyzer({ onAnalysisComplete }: PhotoAnalyzerProps) {
+    const { t } = useTranslation();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [statusText, setStatusText] = useState('');
     const [apiKey, setApiKey] = useState('');
@@ -95,13 +97,13 @@ export function PhotoAnalyzer({ onAnalysisComplete }: PhotoAnalyzerProps) {
         if (!file) return;
 
         if (!apiKey) {
-            alert('Bitte speichere zuerst deinen Gemini API Key in den Einstellungen.');
+            alert(t('photoAnalyzer.alertKeyMissing'));
             setShowSettings(true);
             return;
         }
 
         setIsAnalyzing(true);
-        setStatusText('Lese Metadaten...');
+        setStatusText(t('photoAnalyzer.statusReading'));
 
         try {
             // 1. Extract Date from EXIF
@@ -121,7 +123,7 @@ export function PhotoAnalyzer({ onAnalysisComplete }: PhotoAnalyzerProps) {
             }
 
             // 2. Analyze with Gemini
-            setStatusText('Sende an Gemini...');
+            setStatusText(t('photoAnalyzer.statusSending'));
             const genAI = new GoogleGenerativeAI(apiKey);
             console.log(`Using model: ${selectedModel}`);
             const model = genAI.getGenerativeModel({ model: selectedModel });
@@ -160,15 +162,15 @@ export function PhotoAnalyzer({ onAnalysisComplete }: PhotoAnalyzerProps) {
             const errorMessage = error instanceof Error ? error.message : 'Unbekannter Fehler';
 
             if (errorMessage.includes('400') || errorMessage.includes('API key')) {
-                alert(`API Key ungültig oder nicht berechtigt (Fehler: ${errorMessage}). Bitte prüfe den Key.`);
+                alert(`${t('photoAnalyzer.alertKeyInvalid')} (${errorMessage})`);
             } else if (errorMessage.includes('404')) {
-                alert(`Modell nicht gefunden (${selectedModel}). Bitte wähle ein anderes Modell in den Einstellungen.`);
+                alert(`${t('photoAnalyzer.alertModelNotFound')} (${selectedModel}).`);
                 setShowSettings(true);
             } else {
-                alert(`Ein Fehler ist aufgetreten: ${errorMessage}`);
+                alert(`${t('photoAnalyzer.alertError')}: ${errorMessage}`);
             }
 
-            setStatusText(`Fehler: ${errorMessage.substring(0, 30)}...`);
+            setStatusText(`Error: ${errorMessage.substring(0, 30)}...`);
         } finally {
             setIsAnalyzing(false);
             setStatusText('');
@@ -180,20 +182,20 @@ export function PhotoAnalyzer({ onAnalysisComplete }: PhotoAnalyzerProps) {
         <div className="w-full space-y-4">
             {/* Settings / API Key Input */}
             {showSettings ? (
-                <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-3 animate-in fade-in slide-in-from-top-2">
+                <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-4 animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center gap-2 text-primary mb-2">
                         <Settings size={20} />
-                        <h3 className="font-semibold">Konfiguration</h3>
+                        <h3 className="font-semibold">{t('photoAnalyzer.config')}</h3>
                     </div>
 
                     <p className="text-sm text-muted">
-                        API Key erforderlich (<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">hier erstellen</a>).
+                        {t('photoAnalyzer.apiKeyRequired')} (<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">{t('photoAnalyzer.apiKeyLink')}</a>).
                     </p>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-4">
                         <input
                             type="password"
-                            placeholder="Gemini API Key einfügen"
+                            placeholder={t('photoAnalyzer.insertKey')}
                             className="flex-1 bg-black/20 border border-white/10 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
                             onChange={(e) => setApiKey(e.target.value)}
                             value={apiKey}
@@ -210,9 +212,9 @@ export function PhotoAnalyzer({ onAnalysisComplete }: PhotoAnalyzerProps) {
                     {apiKey && (
                         <div className="space-y-1">
                             <div className="flex items-center justify-between">
-                                <label className="text-sm text-muted">Modell:</label>
+                                <label className="text-sm text-muted">{t('photoAnalyzer.model')}:</label>
                                 <button onClick={() => fetchModels(apiKey)} className="text-xs text-blue-400 flex items-center gap-1">
-                                    <RefreshCw size={12} className={isLoadingModels ? 'animate-spin' : ''} /> Aktualisieren
+                                    <RefreshCw size={12} className={isLoadingModels ? 'animate-spin' : ''} /> {t('photoAnalyzer.refresh')}
                                 </button>
                             </div>
                             {availableModels.length > 0 ? (
@@ -227,7 +229,7 @@ export function PhotoAnalyzer({ onAnalysisComplete }: PhotoAnalyzerProps) {
                                 </select>
                             ) : (
                                 <p className="text-xs text-yellow-500">
-                                    {isLoadingModels ? 'Lade Modelle...' : 'Keine Modelle gefunden (Prüfe Key/Region)'}
+                                    {isLoadingModels ? t('photoAnalyzer.loadingModels') : t('photoAnalyzer.noModels')}
                                 </p>
                             )}
                         </div>
@@ -240,7 +242,7 @@ export function PhotoAnalyzer({ onAnalysisComplete }: PhotoAnalyzerProps) {
                         className="text-xs text-muted hover:text-white flex items-center gap-1"
                     >
                         <Settings size={14} />
-                        API Settings {selectedModel && `(${selectedModel})`}
+                        {t('photoAnalyzer.apiSettings')} {selectedModel && `(${selectedModel})`}
                     </button>
                 </div>
             )}
@@ -262,8 +264,8 @@ export function PhotoAnalyzer({ onAnalysisComplete }: PhotoAnalyzerProps) {
                     <>
                         <Camera size={24} />
                         <div className="text-center">
-                            <span className="block font-medium">Foto aufnehmen / hochladen</span>
-                            <span className="text-xs opacity-70">Powered by Gemini AI</span>
+                            <span className="block font-medium">{t('photoAnalyzer.photoPlaceholder')}</span>
+                            <span className="text-xs opacity-70">{t('photoAnalyzer.poweredBy')}</span>
                         </div>
                     </>
                 )}

@@ -6,8 +6,9 @@ import {
     Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { format, parseISO, subYears } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { de, enUS } from 'date-fns/locale';
 import { BarChart3, LineChart as LineChartIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface MonthlyStatsProps {
     readings: Reading[];
@@ -18,9 +19,13 @@ type TimeRange = '3' | '6' | '12' | 'all';
 type ChartType = 'bar' | 'line';
 
 export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
+    const { t, i18n } = useTranslation();
     const [timeRange, setTimeRange] = useState<TimeRange>('all');
     const [chartType, setChartType] = useState<ChartType>('bar');
     const stats = useMemo(() => calculateMonthlyConsumption(readings), [readings]);
+
+    // Determine date-fns locale
+    const dateLocale = i18n.resolvedLanguage === 'de' ? de : enUS;
 
     // Transform data for chart to include previous year
     const chartData = useMemo(() => {
@@ -31,13 +36,13 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
             const prevYearStat = stats.find(s => s.month === prevYearKey);
 
             return {
-                month: format(date, 'MMM yy', { locale: de }),
+                month: format(date, 'MMM yy', { locale: dateLocale }),
                 actualDate: stat.month,
                 current: Number(stat.consumption.toFixed(2)),
                 previousYear: prevYearStat ? Number(prevYearStat.consumption.toFixed(2)) : null
             };
         });
-    }, [stats]);
+    }, [stats, dateLocale]);
 
     const filteredData = useMemo(() => {
         if (timeRange === 'all') return chartData;
@@ -48,7 +53,7 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
     if (stats.length === 0) {
         return (
             <div className="card text-center p-8 text-muted">
-                Keine ausreichenden Daten für eine monatliche Auswertung vorhanden (mindestens 2 Ablesungen erforderlich).
+                {t('stats.insufficientData')}
             </div>
         );
     }
@@ -57,27 +62,27 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
         <div className="space-y-6">
             <div className="card flex flex-col">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                    <h3 className="text-lg font-semibold">Monatlicher Durchschnittsverbrauch</h3>
+                    <h3 className="text-lg font-semibold">{t('stats.monthlyAverage')}</h3>
 
-                    <div className="flex bg-surface-hover p-1 rounded-lg gap-2">
-                        <div className="flex bg-black/20 rounded-md p-0.5">
+                    <div className="flex bg-surface-hover p-1.5 rounded-lg gap-4">
+                        <div className="flex bg-black/20 rounded-md p-1 gap-1">
                             <button
                                 onClick={() => setChartType('bar')}
-                                className={`p-1.5 rounded-md transition-all ${chartType === 'bar'
+                                className={`p-2 rounded-md transition-all ${chartType === 'bar'
                                     ? 'bg-primary text-white shadow-sm'
                                     : 'text-muted hover:text-text'
                                     }`}
-                                title="Balkendiagramm"
+                                title={t('stats.chartBar')}
                             >
                                 <BarChart3 size={18} />
                             </button>
                             <button
                                 onClick={() => setChartType('line')}
-                                className={`p-1.5 rounded-md transition-all ${chartType === 'line'
+                                className={`p-2 rounded-md transition-all ${chartType === 'line'
                                     ? 'bg-primary text-white shadow-sm'
                                     : 'text-muted hover:text-text'
                                     }`}
-                                title="Liniendiagramm"
+                                title={t('stats.chartLine')}
                             >
                                 <LineChartIcon size={18} />
                             </button>
@@ -85,17 +90,17 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
 
                         <div className="w-px bg-white/10 mx-1"></div>
 
-                        <div className="flex">
+                        <div className="flex gap-1">
                             {(['3', '6', '12', 'all'] as const).map((range) => (
                                 <button
                                     key={range}
                                     onClick={() => setTimeRange(range)}
-                                    className={`px-3 py-1 text-sm rounded-md transition-all ${timeRange === range
+                                    className={`px-4 py-1.5 text-sm rounded-md transition-all ${timeRange === range
                                         ? 'bg-primary text-white shadow-sm'
                                         : 'text-muted hover:text-text hover:bg-white/5 bg-transparent'
                                         }`}
                                 >
-                                    {range === 'all' ? 'Alle' : range}
+                                    {range === 'all' ? t('stats.rangeAll') : range}
                                 </button>
                             ))}
                         </div>
@@ -126,21 +131,21 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                                         borderRadius: '8px',
                                         color: 'var(--text)'
                                     }}
-                                    formatter={(value: number | undefined) => [value?.toFixed(2) + (type === 'electricity' ? ' kWh' : ' m³'), 'Verbrauch']}
+                                    formatter={(value: number | undefined) => [value?.toFixed(2) + (type === 'electricity' ? ' kWh' : ' m³'), t('stats.consumption')]}
                                     labelStyle={{ color: 'var(--text-muted)' }}
                                     cursor={{ fill: 'var(--surface-hover)' }}
                                 />
                                 <Legend />
                                 <Bar
                                     dataKey="current"
-                                    name="Aktuelles Jahr"
+                                    name={t('stats.currentYear')}
                                     fill="var(--primary)"
                                     radius={[4, 4, 0, 0]}
                                     barSize={32}
                                 />
                                 <Bar
                                     dataKey="previousYear"
-                                    name="Vorjahr"
+                                    name={t('stats.prevYear')}
                                     fill="var(--secondary)"
                                     radius={[4, 4, 0, 0]}
                                     barSize={32}
@@ -169,14 +174,14 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                                         borderRadius: '8px',
                                         color: 'var(--text)'
                                     }}
-                                    formatter={(value: number | undefined) => [value?.toFixed(2) + (type === 'electricity' ? ' kWh' : ' m³'), 'Verbrauch']}
+                                    formatter={(value: number | undefined) => [value?.toFixed(2) + (type === 'electricity' ? ' kWh' : ' m³'), t('stats.consumption')]}
                                     labelStyle={{ color: 'var(--text-muted)' }}
                                 />
                                 <Legend />
                                 <Line
                                     type="monotone"
                                     dataKey="current"
-                                    name="Aktuelles Jahr"
+                                    name={t('stats.currentYear')}
                                     stroke="var(--primary)"
                                     strokeWidth={3}
                                     dot={{ fill: 'var(--primary)', r: 4 }}
@@ -185,7 +190,7 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                                 <Line
                                     type="monotone"
                                     dataKey="previousYear"
-                                    name="Vorjahr"
+                                    name={t('stats.prevYear')}
                                     stroke="var(--secondary)"
                                     strokeWidth={3}
                                     strokeDasharray="5 5"
@@ -202,9 +207,9 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="border-b border-white/10">
-                            <th className="p-3 font-medium text-muted">Monat</th>
-                            <th className="p-3 font-medium text-muted">Verbrauch</th>
-                            <th className="p-3 font-medium text-muted">Vergleich Vorjahr</th>
+                            <th className="p-3 font-medium text-muted">{t('stats.month')}</th>
+                            <th className="p-3 font-medium text-muted">{t('stats.consumption')}</th>
+                            <th className="p-3 font-medium text-muted">{t('stats.comparison')}</th>
                         </tr>
                     </thead>
                     <tbody>

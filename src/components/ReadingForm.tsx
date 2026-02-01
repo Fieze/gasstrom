@@ -3,6 +3,7 @@ import type { MeterType, Reading } from '../types';
 import { format } from 'date-fns';
 import { Plus } from 'lucide-react';
 import { PhotoAnalyzer } from './PhotoAnalyzer';
+import { useTranslation } from 'react-i18next';
 
 interface ReadingFormProps {
     type: MeterType;
@@ -10,6 +11,7 @@ interface ReadingFormProps {
 }
 
 export function ReadingForm({ type, onSubmit }: ReadingFormProps) {
+    const { t } = useTranslation();
     const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [value, setValue] = useState('');
 
@@ -45,9 +47,9 @@ export function ReadingForm({ type, onSubmit }: ReadingFormProps) {
 
             <div className="w-full h-px bg-white/10" />
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                    <label className="block text-sm font-medium text-muted mb-1">Datum der Ablesung</label>
+                    <label className="block text-sm font-medium text-muted mb-1">{t('readingForm.date')}</label>
                     <input
                         type="date"
                         required
@@ -59,7 +61,7 @@ export function ReadingForm({ type, onSubmit }: ReadingFormProps) {
 
                 <div>
                     <label className="block text-sm font-medium text-muted mb-1">
-                        Zählerstand ({type === 'electricity' ? 'kWh' : 'm³'})
+                        {t('readingForm.reading')} ({type === 'electricity' ? 'kWh' : 'm³'})
                     </label>
                     <input
                         type="number"
@@ -74,10 +76,10 @@ export function ReadingForm({ type, onSubmit }: ReadingFormProps) {
 
                 <button
                     type="submit"
-                    className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 text-lg"
                 >
                     <Plus size={20} />
-                    Hinzufügen
+                    {t('readingForm.add')}
                 </button>
             </form>
         </div>

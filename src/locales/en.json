@@ -1,0 +1,81 @@
+{
+    "app": {
+        "title": "Consumption Monitor",
+        "subtitle": "Track and analyze your meter readings",
+        "tabs": {
+            "electricity": "Electricity",
+            "gas": "Gas"
+        }
+    },
+    "sections": {
+        "newEntry": "New Entry",
+        "analysis": "Analysis",
+        "status": {
+            "title": "Status & Information",
+            "dataStatus": "Data Status",
+            "count": "Number of entries ({{type}})",
+            "minEntries": "At least 2 entries needed for chart."
+        },
+        "history": {
+            "title": "History",
+            "empty": "No entries yet.",
+            "delete": "Delete"
+        },
+        "importExport": {
+            "title": "Data Import / Export",
+            "export": "Export",
+            "import": "Import",
+            "success": "Data imported successfully!",
+            "errorImport": "Error importing data.",
+            "errorRead": "Error reading file."
+        }
+    },
+    "photoAnalyzer": {
+        "title": "Scan Meter by Photo",
+        "analyze": "Analyze",
+        "analyzing": "Analyzing...",
+        "noText": "No text detected",
+        "apiKeyRequired": "API Key required",
+        "apiKeyLink": "create here",
+        "placeholderKey": "Enter Google Gemini API Key",
+        "saveKey": "Save",
+        "readingFound": "Detected Reading",
+        "confidence": "Confidence",
+        "useValue": "Use Value",
+        "cameraError": "Could not start camera",
+        "capture": "Capture Photo",
+        "stopClient": "Stop Camera",
+        "alertKeyMissing": "Please save your Gemini API Key in settings first.",
+        "statusReading": "Reading metadata...",
+        "statusSending": "Sending to Gemini...",
+        "alertKeyInvalid": "API Key invalid or unauthorized",
+        "alertModelNotFound": "Model not found",
+        "alertError": "An error occurred",
+        "config": "Configuration",
+        "insertKey": "Insert Gemini API Key",
+        "model": "Model",
+        "refresh": "Refresh",
+        "loadingModels": "Loading models...",
+        "noModels": "No models found (Check Key/Region)",
+        "apiSettings": "API Settings",
+        "photoPlaceholder": "Take photo / Upload",
+        "poweredBy": "Powered by Gemini AI"
+    },
+    "readingForm": {
+        "date": "Reading Date",
+        "reading": "Meter Reading",
+        "add": "Add"
+    },
+    "stats": {
+        "monthlyAverage": "Monthly Average Consumption",
+        "insufficientData": "Insufficient data available for monthly analysis (at least 2 readings required).",
+        "chartBar": "Bar Chart",
+        "chartLine": "Line Chart",
+        "rangeAll": "All",
+        "currentYear": "Current Year",
+        "prevYear": "Previous Year",
+        "month": "Month",
+        "consumption": "Consumption",
+        "comparison": "Comparison Prev. Year"
+    }
+}

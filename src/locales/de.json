@@ -1,0 +1,81 @@
+{
+    "app": {
+        "title": "Verbrauchsmonitor",
+        "subtitle": "Erfasse und analysiere deine Zählerstände",
+        "tabs": {
+            "electricity": "Strom",
+            "gas": "Gas"
+        }
+    },
+    "sections": {
+        "newEntry": "Neuer Eintrag",
+        "analysis": "Auswertung",
+        "status": {
+            "title": "Status & Informationen",
+            "dataStatus": "Daten-Status",
+            "count": "Anzahl Einträge ({{type}})",
+            "minEntries": "Mindestens 2 Einträge benötigt für Diagramm."
+        },
+        "history": {
+            "title": "Historie",
+            "empty": "Noch keine Einträge vorhanden.",
+            "delete": "Löschen"
+        },
+        "importExport": {
+            "title": "Daten Import / Export",
+            "export": "Exportieren",
+            "import": "Importieren",
+            "success": "Daten erfolgreich importiert!",
+            "errorImport": "Fehler beim Importieren der Daten.",
+            "errorRead": "Fehler beim Lesen der Datei."
+        }
+    },
+    "photoAnalyzer": {
+        "title": "Zählerstand per Foto",
+        "analyze": "Analysieren",
+        "analyzing": "Analysiere...",
+        "noText": "Kein Text erkannt",
+        "apiKeyRequired": "API Key erforderlich",
+        "apiKeyLink": "hier erstellen",
+        "placeholderKey": "Google Gemini API Key eingeben",
+        "saveKey": "Speichern",
+        "readingFound": "Erkannter Zählerstand",
+        "confidence": "Konfidenz",
+        "useValue": "Wert übernehmen",
+        "cameraError": "Kamera konnte nicht gestartet werden",
+        "capture": "Foto aufnehmen",
+        "stopClient": "Kamera stoppen",
+        "alertKeyMissing": "Bitte speichere zuerst deinen Gemini API Key in den Einstellungen.",
+        "statusReading": "Lese Metadaten...",
+        "statusSending": "Sende an Gemini...",
+        "alertKeyInvalid": "API Key ungültig oder nicht berechtigt",
+        "alertModelNotFound": "Modell nicht gefunden",
+        "alertError": "Ein Fehler ist aufgetreten",
+        "config": "Konfiguration",
+        "insertKey": "Gemini API Key einfügen",
+        "model": "Modell",
+        "refresh": "Aktualisieren",
+        "loadingModels": "Lade Modelle...",
+        "noModels": "Keine Modelle gefunden (Prüfe Key/Region)",
+        "apiSettings": "API Settings",
+        "photoPlaceholder": "Foto aufnehmen / hochladen",
+        "poweredBy": "Powered by Gemini AI"
+    },
+    "readingForm": {
+        "date": "Datum der Ablesung",
+        "reading": "Zählerstand",
+        "add": "Hinzufügen"
+    },
+    "stats": {
+        "monthlyAverage": "Monatlicher Durchschnittsverbrauch",
+        "insufficientData": "Keine ausreichenden Daten für eine monatliche Auswertung vorhanden (mindestens 2 Ablesungen erforderlich).",
+        "chartBar": "Balkendiagramm",
+        "chartLine": "Liniendiagramm",
+        "rangeAll": "Alle",
+        "currentYear": "Aktuelles Jahr",
+        "prevYear": "Vorjahr",
+        "month": "Monat",
+        "consumption": "Verbrauch",
+        "comparison": "Vergleich Vorjahr"
+    }
+}
