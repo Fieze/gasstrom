@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import { useState } from 'react';
 import type { MeterType, Reading } from '../types';
 import { format } from 'date-fns';
@@ -22,7 +23,7 @@ export function ReadingForm({ type, onSubmit, apiKey, model }: ReadingFormProps)
         if (!value || !date) return;
 
         onSubmit({
-            id: crypto.randomUUID(),
+            id: uuidv4(),
             date,
             value: parseFloat(value),
             type
