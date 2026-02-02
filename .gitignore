@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 server/database.sqlite
+server/backups/
 data/
 
 # Editor directories and files
