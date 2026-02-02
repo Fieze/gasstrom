@@ -1,6 +1,7 @@
 services:
   app:
-    build: .
+    # Build directly from the GitHub repository
+    build: https://github.com/Fieze/gasstrom.git#main
     image: gas-strom-app
     ports:
       - "4735:4735"

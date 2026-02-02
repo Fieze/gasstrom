@@ -28,7 +28,8 @@ COPY --from=builder /app/dist ./dist
 RUN mkdir -p /app/server && mkdir -p /app/data
 
 # Expose port
-EXPOSE 3000
+EXPOSE 4735
+ENV PORT=4735
 
 # Start server
 CMD ["node", "server/index.js"]

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import type { Reading, MeterType } from '../types';
 
-const API_URL = 'http://localhost:3000/api/readings';
+const API_URL = '/api/readings';
 
 export function useReadings() {
     const [readings, setReadings] = useState<Reading[]>([]);
@@ -64,7 +64,7 @@ export function useReadings() {
 
     const importReadings = async (newReadings: Reading[]) => {
         try {
-            const response = await fetch('http://localhost:3000/api/import', {
+            const response = await fetch('/api/import', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newReadings),

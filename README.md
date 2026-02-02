@@ -52,6 +52,20 @@ npm start
 - The frontend will typically run on `http://localhost:5173`
 - The backend server runs on the configured port (check server logs)
 
+## 🐳 Deployment (Docker)
+
+### Production (via GitHub)
+To deploy the application using the latest code from GitHub (recommended for Dockge/Portainer):
+1. Use the content of `docker-compose.prod.yml`.
+2. **Important**: Ensure you have pushed your latest changes to the `main` branch.
+3. The image will be built directly from the repository source.
+
+### Local Development
+Use the standard `docker-compose.yml` to build from your local source:
+```bash
+docker-compose up --build
+```
+
 ## ⚙️ Configuration
 
 ### Gemini AI API Key
