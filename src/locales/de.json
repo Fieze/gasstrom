@@ -87,10 +87,18 @@
         "apiKey": "Gemini API Key",
         "model": "Modell",
         "exportData": "Daten exportieren",
-        "importData": "Daten importieren"
+        "importData": "Daten importieren",
+        "backups": "Backups",
+        "selectBackup": "Wähle ein Backup...",
+        "restore": "Wiederherstellen",
+        "createBackupNow": "Backup jetzt erstellen",
+        "confirmRestore": "Bist du sicher, dass du dieses Backup wiederherstellen möchtest? Die aktuellen Daten werden überschrieben.",
+        "restoreSuccess": "Wiederherstellung erfolgreich. Die Seite wird neu geladen.",
+        "restoreError": "Fehler bei der Wiederherstellung."
     },
     "common": {
         "save": "Speichern",
-        "close": "Schließen"
+        "close": "Schließen",
+        "loading": "Laden..."
     }
 }

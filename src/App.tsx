@@ -25,13 +25,25 @@ function App() {
   const [isLoadingModels, setIsLoadingModels] = useState(false);
 
   useEffect(() => {
-    const storedKey = localStorage.getItem('gemini_api_key');
-    const storedModel = localStorage.getItem('gemini_model');
-    if (storedKey) {
-      setApiKey(storedKey);
-      fetchModels(storedKey);
-    }
-    if (storedModel) setAiModel(storedModel);
+    // Load settings from backend
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const settings = await res.json();
+          if (settings.gemini_api_key) {
+            setApiKey(settings.gemini_api_key);
+            fetchModels(settings.gemini_api_key);
+          }
+          if (settings.gemini_model) {
+            setAiModel(settings.gemini_model);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load settings', err);
+      }
+    };
+    loadSettings();
   }, []);
 
   const dateLocale = i18n.resolvedLanguage === 'de' ? de : enUS;
@@ -76,15 +88,27 @@ function App() {
     event.target.value = '';
   };
 
+  const saveSetting = async (key: string, value: string) => {
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value })
+      });
+    } catch (err) {
+      console.error('Failed to save setting', err);
+    }
+  };
+
   const handleApiKeyChange = (key: string) => {
     setApiKey(key);
-    localStorage.setItem('gemini_api_key', key);
+    saveSetting('gemini_api_key', key);
     fetchModels(key);
   };
 
   const handleModelChange = (model: string) => {
     setAiModel(model);
-    localStorage.setItem('gemini_model', model);
+    saveSetting('gemini_model', model);
   };
 
   const fetchModels = async (key: string) => {

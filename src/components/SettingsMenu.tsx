@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Globe, Save, RefreshCw, Upload, Download, Key, Cpu } from 'lucide-react';
+import { X, Globe, Save, RefreshCw, Upload, Download, Key, Cpu, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 
@@ -15,6 +15,11 @@ interface SettingsMenuProps {
     onRefreshModels: () => void;
     onImport: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onExport: () => void;
+}
+
+interface Backup {
+    name: string;
+    created: string;
 }
 
 export function SettingsMenu({
@@ -33,10 +38,71 @@ export function SettingsMenu({
     const { t } = useTranslation();
     const [tempKey, setTempKey] = useState(apiKey);
     const [activeTab, setActiveTab] = useState<'general' | 'ai' | 'data'>('general');
+    const [backups, setBackups] = useState<Backup[]>([]);
+    const [selectedBackup, setSelectedBackup] = useState<string>('');
+    const [isLoadingBackups, setIsLoadingBackups] = useState(false);
+    const [isRestoring, setIsRestoring] = useState(false);
 
     useEffect(() => {
         setTempKey(apiKey);
     }, [apiKey]);
+
+    useEffect(() => {
+        if (isOpen && activeTab === 'data') {
+            fetchBackups();
+        }
+    }, [isOpen, activeTab]);
+
+    const fetchBackups = async () => {
+        setIsLoadingBackups(true);
+        try {
+            const res = await fetch('/api/backups');
+            if (res.ok) {
+                const data = await res.json();
+                setBackups(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch backups', error);
+        } finally {
+            setIsLoadingBackups(false);
+        }
+    };
+
+    const handleRestore = async () => {
+        if (!selectedBackup) return;
+        if (!confirm(t('settings.confirmRestore') || 'Are you sure you want to restore this backup? Current data will be replaced.')) return;
+
+        setIsRestoring(true);
+        try {
+            const res = await fetch('/api/backups/restore', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: selectedBackup })
+            });
+
+            if (res.ok) {
+                alert(t('settings.restoreSuccess') || 'Restore successful. The page will reload.');
+                window.location.reload();
+            } else {
+                alert(t('settings.restoreError') || 'Restore failed.');
+            }
+        } catch (error) {
+            console.error('Restore error', error);
+            alert(t('settings.restoreError') || 'Restore failed.');
+        } finally {
+            setIsRestoring(false);
+        }
+    };
+
+    // Trigger immediate backup (hidden feature or just helpful)
+    const handleCreateBackup = async () => {
+        try {
+            await fetch('/api/backups', { method: 'POST' });
+            fetchBackups(); // refresh list
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -177,6 +243,49 @@ export function SettingsMenu({
                     {/* Data Tab */}
                     {activeTab === 'data' && (
                         <div className="space-y-6">
+                            {/* Backup Section */}
+                            <div className="space-y-3">
+                                <label className="text-sm font-medium text-muted">{t('settings.backups') || 'Backups'}</label>
+                                <div className="flex gap-2">
+                                    <select
+                                        className="flex-1 bg-black/20 border border-white/10 rounded px-3 py-2 text-white text-sm disabled:opacity-50"
+                                        value={selectedBackup}
+                                        onChange={(e) => setSelectedBackup(e.target.value)}
+                                        disabled={isLoadingBackups}
+                                    >
+                                        <option value="">
+                                            {isLoadingBackups
+                                                ? (t('common.loading') || 'Loading...')
+                                                : (t('settings.selectBackup') || 'Select a backup...')
+                                            }
+                                        </option>
+                                        {backups.map(b => (
+                                            <option key={b.name} value={b.name}>
+                                                {new Date(b.created).toLocaleString()}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        onClick={handleRestore}
+                                        disabled={!selectedBackup || isRestoring || isLoadingBackups}
+                                        className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 px-3 py-2 rounded flex items-center gap-2 disabled:opacity-50"
+                                        title={t('settings.restore') || 'Restore'}
+                                    >
+                                        <RotateCcw size={18} className={(isRestoring || isLoadingBackups) ? 'animate-spin' : ''} />
+                                    </button>
+                                </div>
+                                <div className='flex justify-end'>
+                                    <button
+                                        onClick={handleCreateBackup}
+                                        className='text-xs text-muted hover:text-white underline'
+                                    >
+                                        {t('settings.createBackupNow') || 'Create Backup Now'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="w-full h-px bg-white/10" />
+
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-muted">{t('settings.exportData') || 'Export Data'}</label>
                                 <button
