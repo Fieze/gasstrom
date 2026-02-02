@@ -52,19 +52,36 @@ npm start
 - The frontend will typically run on `http://localhost:5173`
 - The backend server runs on the configured port (check server logs)
 
-## 🐳 Deployment (Docker)
+## 🐳 Deployment
 
-### Production (via GitHub)
-To deploy the application using the latest code from GitHub (recommended for Dockge/Portainer):
-1. Use the content of `docker-compose.prod.yml`.
-2. **Important**: Ensure you have pushed your latest changes to the `main` branch.
-3. The image will be built directly from the repository source.
+This project uses **Docker** primarily for deployment.
 
-### Local Development
-Use the standard `docker-compose.yml` to build from your local source:
-```bash
-docker-compose up --build
-```
+### Production (via GitHub Packages)
+
+The easiest way to deploy is using the pre-built image from GitHub Container Registry (GHCR).
+
+1.  Use the `docker-compose.yml` file included in this repository.
+2.  Deploy using a tool like **Dockge**, **Portainer**, or directly via `docker compose up -d`.
+3.  The image `ghcr.io/fieze/gasstrom:latest` is automatically built and pushed when changes are made to the `release` branch.
+
+**Note**: To trigger a new release, push your changes to the `release` branch.
+
+## 💻 Local Development
+
+For local development, we recommend using `npm` directly instead of Docker.
+
+1.  Install dependencies:
+    ```bash
+    npm install
+    ```
+
+2.  Start the development server (frontend + backend):
+    ```bash
+    npm start
+    ```
+
+- The app will run on `http://localhost:5173`.
+- The backend API runs on port `4735`.
 
 ## ⚙️ Configuration
 
@@ -77,4 +94,4 @@ To use the **Photo Analyzer** feature, you need a Google Gemini API Key.
 
 ## 📄 License
 
-[MIT](LICENSE) (or whichever license is applicable)
+[GNU GPLv3](LICENSE)

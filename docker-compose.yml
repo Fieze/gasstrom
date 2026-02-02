@@ -1,7 +1,7 @@
 services:
   app:
-    build: .
-    image: gas-strom-app
+    # Use the image built by GitHub Actions
+    image: ghcr.io/fieze/gasstrom:latest
     ports:
       - "4735:4735"
     volumes:
