@@ -8,9 +8,11 @@ import { useTranslation } from 'react-i18next';
 interface ReadingFormProps {
     type: MeterType;
     onSubmit: (reading: Reading) => void;
+    apiKey: string;
+    model: string;
 }
 
-export function ReadingForm({ type, onSubmit }: ReadingFormProps) {
+export function ReadingForm({ type, onSubmit, apiKey, model }: ReadingFormProps) {
     const { t } = useTranslation();
     const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [value, setValue] = useState('');
@@ -43,7 +45,11 @@ export function ReadingForm({ type, onSubmit }: ReadingFormProps) {
 
     return (
         <div className="card space-y-6">
-            <PhotoAnalyzer onAnalysisComplete={handleAnalysisResult} />
+            <PhotoAnalyzer
+                onAnalysisComplete={handleAnalysisResult}
+                apiKey={apiKey}
+                model={model}
+            />
 
             <div className="w-full h-px bg-white/10" />
 

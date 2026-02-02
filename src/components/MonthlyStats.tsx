@@ -203,43 +203,45 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                 </div>
             </div>
 
-            <div className="card overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="border-b border-white/10">
-                            <th className="p-3 font-medium text-muted">{t('stats.month')}</th>
-                            <th className="p-3 font-medium text-muted">{t('stats.consumption')}</th>
-                            <th className="p-3 font-medium text-muted">{t('stats.comparison')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredData.slice().reverse().map((row) => {
-                            const prev = row.previousYear;
-                            const hasPrev = prev !== null;
-                            const diff = hasPrev ? row.current - prev : 0;
-                            const diffPercent = (hasPrev && prev !== 0) ? (diff / prev) * 100 : 0;
+            <div className="card overflow-hidden p-0">
+                <div className="max-h-[600px] overflow-y-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="sticky top-0 bg-surface z-10 backdrop-blur-md">
+                            <tr className="border-b border-white/10">
+                                <th className="p-4 font-medium text-muted">{t('stats.month')}</th>
+                                <th className="p-4 font-medium text-muted">{t('stats.consumption')}</th>
+                                <th className="p-4 font-medium text-muted">{t('stats.comparison')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredData.slice().reverse().map((row) => {
+                                const prev = row.previousYear;
+                                const hasPrev = prev !== null;
+                                const diff = hasPrev ? row.current - prev : 0;
+                                const diffPercent = (hasPrev && prev !== 0) ? (diff / prev) * 100 : 0;
 
-                            return (
-                                <tr key={row.actualDate} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
-                                    <td className="p-3">{row.month}</td>
-                                    <td className="p-3 font-medium">
-                                        {row.current.toFixed(2)}
-                                        <span className="text-xs text-muted ml-1">{type === 'electricity' ? 'kWh' : 'm³'}</span>
-                                    </td>
-                                    <td className="p-3">
-                                        {hasPrev ? (
-                                            <span className={`flex items-center gap-1 ${diff > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                                                {diff > 0 ? '+' : ''}{diff.toFixed(2)} ({diff > 0 ? '+' : ''}{diffPercent.toFixed(1)}%)
-                                            </span>
-                                        ) : (
-                                            <span className="text-muted">-</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                                return (
+                                    <tr key={row.actualDate} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+                                        <td className="p-4">{row.month}</td>
+                                        <td className="p-4 font-medium">
+                                            {row.current.toFixed(2)}
+                                            <span className="text-xs text-muted ml-1">{type === 'electricity' ? 'kWh' : 'm³'}</span>
+                                        </td>
+                                        <td className="p-4">
+                                            {hasPrev ? (
+                                                <span className={`flex items-center gap-1 ${diff > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                                    {diff > 0 ? '+' : ''}{diff.toFixed(2)} ({diff > 0 ? '+' : ''}{diffPercent.toFixed(1)}%)
+                                                </span>
+                                            ) : (
+                                                <span className="text-muted">-</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

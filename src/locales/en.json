@@ -77,5 +77,20 @@
         "month": "Month",
         "consumption": "Consumption",
         "comparison": "Comparison Prev. Year"
+    },
+    "settings": {
+        "title": "Settings",
+        "general": "General",
+        "ai": "AI Configuration",
+        "data": "Data",
+        "language": "Language",
+        "apiKey": "Gemini API Key",
+        "model": "Model",
+        "exportData": "Export Data",
+        "importData": "Import Data"
+    },
+    "common": {
+        "save": "Save",
+        "close": "Close"
     }
 }

@@ -77,5 +77,20 @@
         "month": "Monat",
         "consumption": "Verbrauch",
         "comparison": "Vergleich Vorjahr"
+    },
+    "settings": {
+        "title": "Einstellungen",
+        "general": "Allgemein",
+        "ai": "KI Konfiguration",
+        "data": "Daten",
+        "language": "Sprache",
+        "apiKey": "Gemini API Key",
+        "model": "Modell",
+        "exportData": "Daten exportieren",
+        "importData": "Daten importieren"
+    },
+    "common": {
+        "save": "Speichern",
+        "close": "Schließen"
     }
 }

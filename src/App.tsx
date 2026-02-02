@@ -1,14 +1,14 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { MeterType } from './types.ts';
 import { useReadings } from './hooks/useReadings';
 import { ReadingForm } from './components/ReadingForm';
 import { MonthlyStats } from './components/MonthlyStats';
 import { CollapsibleSection } from './components/CollapsibleSection';
-import { LanguageSwitcher } from './components/LanguageSwitcher';
+import { SettingsMenu } from './components/SettingsMenu';
 import { format, parseISO } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
-import { Trash2, Zap, Flame, Download, Upload } from 'lucide-react';
+import { Zap, Flame, Settings, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 function App() {
@@ -16,6 +16,23 @@ function App() {
   const [activeTab, setActiveTab] = useState<MeterType>('electricity');
   const currentReadings = getReadingsByType(activeTab);
   const { t, i18n } = useTranslation();
+
+  // Settings State
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [aiModel, setAiModel] = useState('gemini-1.5-flash');
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+
+  useEffect(() => {
+    const storedKey = localStorage.getItem('gemini_api_key');
+    const storedModel = localStorage.getItem('gemini_model');
+    if (storedKey) {
+      setApiKey(storedKey);
+      fetchModels(storedKey);
+    }
+    if (storedModel) setAiModel(storedModel);
+  }, []);
 
   const dateLocale = i18n.resolvedLanguage === 'de' ? de : enUS;
 
@@ -56,18 +73,75 @@ function App() {
       }
     };
     reader.readAsText(file);
-    // Reset input
     event.target.value = '';
   };
 
+  const handleApiKeyChange = (key: string) => {
+    setApiKey(key);
+    localStorage.setItem('gemini_api_key', key);
+    fetchModels(key);
+  };
+
+  const handleModelChange = (model: string) => {
+    setAiModel(model);
+    localStorage.setItem('gemini_model', model);
+  };
+
+  const fetchModels = async (key: string) => {
+    if (!key) return;
+    setIsLoadingModels(true);
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.models) {
+          const models = data.models
+            .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
+            .map((m: any) => m.name.replace('models/', ''));
+          setAvailableModels(models);
+
+          if (!models.includes(aiModel)) {
+            const fallback = models.find((m: string) => m.includes('flash')) || models[0];
+            if (fallback) handleModelChange(fallback);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to list models", e);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
+
   return (
     <div className="min-h-screen pb-20">
+      <SettingsMenu
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        apiKey={apiKey}
+        onApiKeyChange={handleApiKeyChange}
+        model={aiModel}
+        onModelChange={handleModelChange}
+        availableModels={availableModels}
+        isLoadingModels={isLoadingModels}
+        onRefreshModels={() => fetchModels(apiKey)}
+        onImport={handleImport}
+        onExport={handleExport}
+      />
+
       <header className="mb-8 pt-4 flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold mb-2">{t('app.title')}</h1>
           <p className="text-muted">{t('app.subtitle')}</p>
         </div>
-        <LanguageSwitcher />
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          className="p-3 bg-surface hover:bg-surface-hover text-muted hover:text-white rounded-lg transition-colors border border-white/10"
+          title={t('settings.title') || 'Settings'}
+        >
+          <Settings size={24} />
+        </button>
       </header>
 
       <div className="flex gap-6 mb-8">
@@ -91,7 +165,12 @@ function App() {
         <div className="lg:col-span-1 space-y-6">
           <section>
             <h2 className="text-xl mb-4">{t('sections.newEntry')}</h2>
-            <ReadingForm type={activeTab} onSubmit={addReading} />
+            <ReadingForm
+              type={activeTab}
+              onSubmit={addReading}
+              apiKey={apiKey}
+              model={aiModel}
+            />
           </section>
         </div>
 
@@ -119,51 +198,32 @@ function App() {
         </CollapsibleSection>
 
         <CollapsibleSection title={t('sections.history.title')} defaultOpen={false}>
-          <div className="max-h-[500px] overflow-y-auto space-y-2">
+          <div className="max-h-[500px] overflow-y-auto p-1">
             {currentReadings.length === 0 ? (
               <p className="text-center text-muted py-4">{t('sections.history.empty')}</p>
             ) : (
-              currentReadings.map(reading => (
-                <div key={reading.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors group border border-transparent hover:border-white/5">
-                  <div>
-                    <div className="font-medium">
-                      {format(parseISO(reading.date), 'dd. MMMM yyyy', { locale: dateLocale })}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {currentReadings.map(reading => (
+                  <div key={reading.id} className="relative flex flex-col justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 transition-all group">
+                    <div className="mb-2">
+                      <div className="font-medium text-lg">
+                        {format(parseISO(reading.date), 'dd.MM.yyyy', { locale: dateLocale })}
+                      </div>
+                      <div className="text-sm text-muted">
+                        {reading.value.toFixed(2)} {activeTab === 'electricity' ? 'kWh' : 'm³'}
+                      </div>
                     </div>
-                    <div className="text-sm text-muted">
-                      {reading.value.toFixed(2)} {activeTab === 'electricity' ? 'kWh' : 'm³'}
-                    </div>
+                    <button
+                      onClick={() => removeReading(reading.id)}
+                      className="absolute top-2 right-2 p-1.5 text-muted hover:text-red-400 hover:bg-red-400/10 rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                      title={t('sections.history.delete')}
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => removeReading(reading.id)}
-                    className="p-2 text-muted hover:text-red-400 bg-transparent hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all"
-                    title={t('sections.history.delete')}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))
+                ))}
+              </div>
             )}
-          </div>
-        </CollapsibleSection>
-
-        <CollapsibleSection title={t('sections.importExport.title')} defaultOpen={false}>
-          <div className="flex gap-4">
-            <button
-              onClick={handleExport}
-              className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/10"
-              title={t('sections.importExport.export')}
-            >
-              <Download size={16} /> {t('sections.importExport.export')}
-            </button>
-            <label className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/10 cursor-pointer">
-              <Upload size={16} /> {t('sections.importExport.import')}
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleImport}
-                className="hidden"
-              />
-            </label>
           </div>
         </CollapsibleSection>
       </div>
