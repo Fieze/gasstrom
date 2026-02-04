@@ -29,7 +29,7 @@
     "react-dom": "^19.2.0",
     "react-i18next": "^16.5.4",
     "recharts": "^3.7.0",
-    "sqlite3": "^5.0.2",
+    "sqlite3": "^5.1.7",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
@@ -49,5 +49,9 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4"
+  },
+  "overrides": {
+    "sqlite3": "^5.1.7",
+    "tar": "^7.4.3"
   }
 }
