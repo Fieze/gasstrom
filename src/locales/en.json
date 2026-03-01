@@ -76,7 +76,25 @@
         "prevYear": "Previous Year",
         "month": "Month",
         "consumption": "Consumption",
-        "comparison": "Comparison Prev. Year"
+        "comparison": "Comparison Prev. Year",
+        "temp": "⌀ Temp"
+    },
+    "annual": {
+        "title": "Annual Consumption & Forecast",
+        "forecast": "Forecast (Current Year)",
+        "currentPeriod": "Current Consumption",
+        "projectedTotal": "Projected Annual Total",
+        "comparison": "Comparison to Previous Year",
+        "noHistory": "Not enough data yet for an annual forecast.",
+        "projectedCost": "Expected Cost",
+        "projectedCostHelp": "Based on the consumption forecast and your contract terms",
+        "currentPayment": "Current Payment",
+        "recommendedPayment": "Recommended Payment",
+        "recommendedPaymentHelp": "To avoid a back payment (Total Cost / Payments per Year)",
+        "difference": "Expected Difference",
+        "refund": "Refund",
+        "paymentDue": "Payment Due",
+        "configureSettings": "Please configure your billing date in the settings."
     },
     "settings": {
         "title": "Settings",
@@ -94,7 +112,20 @@
         "createBackupNow": "Create Backup Now",
         "confirmRestore": "Are you sure you want to restore this backup? Current data will be replaced.",
         "restoreSuccess": "Restore successful. The page will reload.",
-        "restoreError": "Restore failed."
+        "restoreError": "Restore failed.",
+        "location": "Location (Zip Code or City)",
+        "locationSearch": "Search",
+        "locationFound": "Found: {{name}}",
+        "billingDateElectricity": "Billing Date (Electricity)",
+        "billingDateGas": "Billing Date (Gas)",
+        "billingDateHelp": "Day and month of your last bill (e.g. 15.05.)",
+        "contractDetails": "Contract Details",
+        "priceKwh": "Price per kWh (Cents/kWh)",
+        "basePrice": "Base Price (€/Month)",
+        "monthlyPayment": "Monthly Payment (€)",
+        "billingMonths": "Payments per year (e.g. 11 or 12)",
+        "gasConversionFactor": "Conversion Factor (m³ -> kWh)",
+        "gasConversionHelp": "Often around 9.5 to 11.5. You can find this on your last gas bill."
     },
     "common": {
         "save": "Save",

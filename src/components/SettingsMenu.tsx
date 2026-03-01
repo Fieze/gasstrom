@@ -15,6 +15,28 @@ interface SettingsMenuProps {
     onRefreshModels: () => void;
     onImport: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onExport: () => void;
+    locationName?: string;
+    onLocationChange?: (lat: number, lon: number, name: string) => void;
+    billingDateElectricity?: string;
+    onBillingDateElectricityChange?: (date: string) => void;
+    billingDateGas?: string;
+    onBillingDateGasChange?: (date: string) => void;
+    priceKwhElectricity?: string;
+    onPriceKwhElectricityChange?: (price: string) => void;
+    basePriceElectricity?: string;
+    onBasePriceElectricityChange?: (price: string) => void;
+    paymentElectricity?: string;
+    onPaymentElectricityChange?: (payment: string) => void;
+    priceKwhGas?: string;
+    onPriceKwhGasChange?: (price: string) => void;
+    basePriceGas?: string;
+    onBasePriceGasChange?: (price: string) => void;
+    paymentGas?: string;
+    onPaymentGasChange?: (payment: string) => void;
+    billingMonths?: string;
+    onBillingMonthsChange?: (months: string) => void;
+    gasConversionFactor?: string;
+    onGasConversionFactorChange?: (factor: string) => void;
 }
 
 interface Backup {
@@ -33,7 +55,29 @@ export function SettingsMenu({
     isLoadingModels,
     onRefreshModels,
     onImport,
-    onExport
+    onExport,
+    locationName = '',
+    onLocationChange,
+    billingDateElectricity = '',
+    onBillingDateElectricityChange,
+    billingDateGas = '',
+    onBillingDateGasChange,
+    priceKwhElectricity = '',
+    onPriceKwhElectricityChange,
+    basePriceElectricity = '',
+    onBasePriceElectricityChange,
+    paymentElectricity = '',
+    onPaymentElectricityChange,
+    priceKwhGas = '',
+    onPriceKwhGasChange,
+    basePriceGas = '',
+    onBasePriceGasChange,
+    paymentGas = '',
+    onPaymentGasChange,
+    billingMonths = '12',
+    onBillingMonthsChange,
+    gasConversionFactor = '10.5',
+    onGasConversionFactorChange
 }: SettingsMenuProps) {
     const { t } = useTranslation();
     const [tempKey, setTempKey] = useState(apiKey);
@@ -43,9 +87,44 @@ export function SettingsMenu({
     const [isLoadingBackups, setIsLoadingBackups] = useState(false);
     const [isRestoring, setIsRestoring] = useState(false);
 
+    // Location & Billing Date state
+    const [tempLocation, setTempLocation] = useState(locationName);
+    const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+    const [tempBillingDateElectricity, setTempBillingDateElectricity] = useState(billingDateElectricity);
+    const [tempBillingDateGas, setTempBillingDateGas] = useState(billingDateGas);
+    const [tempPriceKwhElectricity, setTempPriceKwhElectricity] = useState(priceKwhElectricity);
+    const [tempBasePriceElectricity, setTempBasePriceElectricity] = useState(basePriceElectricity);
+    const [tempPaymentElectricity, setTempPaymentElectricity] = useState(paymentElectricity);
+    const [tempPriceKwhGas, setTempPriceKwhGas] = useState(priceKwhGas);
+    const [tempBasePriceGas, setTempBasePriceGas] = useState(basePriceGas);
+    const [tempPaymentGas, setTempPaymentGas] = useState(paymentGas);
+    const [tempBillingMonths, setTempBillingMonths] = useState(billingMonths);
+    const [tempGasConversionFactor, setTempGasConversionFactor] = useState(gasConversionFactor);
+
     useEffect(() => {
         setTempKey(apiKey);
     }, [apiKey]);
+
+    useEffect(() => {
+        setTempLocation(locationName);
+    }, [locationName]);
+
+    useEffect(() => {
+        setTempBillingDateElectricity(billingDateElectricity);
+    }, [billingDateElectricity]);
+
+    useEffect(() => {
+        setTempBillingDateGas(billingDateGas);
+    }, [billingDateGas]);
+
+    useEffect(() => { setTempPriceKwhElectricity(priceKwhElectricity); }, [priceKwhElectricity]);
+    useEffect(() => { setTempBasePriceElectricity(basePriceElectricity); }, [basePriceElectricity]);
+    useEffect(() => { setTempPaymentElectricity(paymentElectricity); }, [paymentElectricity]);
+    useEffect(() => { setTempPriceKwhGas(priceKwhGas); }, [priceKwhGas]);
+    useEffect(() => { setTempBasePriceGas(basePriceGas); }, [basePriceGas]);
+    useEffect(() => { setTempPaymentGas(paymentGas); }, [paymentGas]);
+    useEffect(() => { setTempBillingMonths(billingMonths); }, [billingMonths]);
+    useEffect(() => { setTempGasConversionFactor(gasConversionFactor); }, [gasConversionFactor]);
 
     useEffect(() => {
         if (isOpen && activeTab === 'data') {
@@ -101,6 +180,31 @@ export function SettingsMenu({
             fetchBackups(); // refresh list
         } catch (e) {
             console.error(e);
+        }
+    };
+
+    const handleLocationSearch = async () => {
+        if (!tempLocation.trim()) return;
+        setIsSearchingLocation(true);
+        try {
+            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(tempLocation)}&count=1&language=${i18n.resolvedLanguage}&format=json`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.results && data.results.length > 0) {
+                    const result = data.results[0];
+                    const fullName = `${result.name}${result.admin1 ? ', ' + result.admin1 : ''}${result.country ? ', ' + result.country : ''}`;
+                    setTempLocation(fullName);
+                    if (onLocationChange) {
+                        onLocationChange(result.latitude, result.longitude, fullName);
+                    }
+                } else {
+                    alert(t('settings.locationNotFound') || 'Location not found.');
+                }
+            }
+        } catch (error) {
+            console.error('Failed to search location:', error);
+        } finally {
+            setIsSearchingLocation(false);
         }
     };
 
@@ -177,6 +281,130 @@ export function SettingsMenu({
                                 >
                                     English
                                 </button>
+                            </div>
+
+                            <div className="pt-4 border-t border-white/10 space-y-2">
+                                <label className="block text-sm font-medium text-muted">{t('settings.location') || 'Location (Zip Code or City)'}</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={tempLocation}
+                                        onChange={(e) => setTempLocation(e.target.value)}
+                                        placeholder="e.g. Berlin"
+                                        className="flex-1 bg-black/20 border border-white/10 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        onKeyDown={(e) => e.key === 'Enter' && handleLocationSearch()}
+                                    />
+                                    <button
+                                        onClick={handleLocationSearch}
+                                        disabled={isSearchingLocation}
+                                        className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded flex items-center gap-2 disabled:opacity-50"
+                                    >
+                                        {isSearchingLocation ? (
+                                            <RefreshCw size={18} className="animate-spin" />
+                                        ) : (
+                                            t('settings.locationSearch') || 'Search'
+                                        )}
+                                    </button>
+                                </div>
+                                <p className="text-xs text-muted">
+                                    {locationName ? (t('settings.locationFound', { name: locationName }) || `Current: ${locationName}`) : ''}
+                                </p>
+                            </div>
+
+                            <div className="pt-4 border-t border-white/10 space-y-4">
+                                <label className="block text-sm font-medium text-muted">Stichtage Jahresabrechnung</label>
+                                <p className="text-xs text-muted">{t('settings.billingDateHelp') || 'Day and month of your last bill (e.g. 15.05.)'}</p>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs text-muted">{t('settings.billingDateElectricity') || 'Billing Date (Electricity)'}</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={tempBillingDateElectricity}
+                                            onChange={(e) => setTempBillingDateElectricity(e.target.value)}
+                                            placeholder="DD.MM."
+                                            className="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        />
+                                        <button
+                                            onClick={() => onBillingDateElectricityChange?.(tempBillingDateElectricity)}
+                                            className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded flex items-center gap-2"
+                                            title={t('common.save') || 'Save'}
+                                        >
+                                            <Save size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs text-muted">{t('settings.billingDateGas') || 'Billing Date (Gas)'}</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={tempBillingDateGas}
+                                            onChange={(e) => setTempBillingDateGas(e.target.value)}
+                                            placeholder="DD.MM."
+                                            className="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                        />
+                                        <button
+                                            onClick={() => onBillingDateGasChange?.(tempBillingDateGas)}
+                                            className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded flex items-center gap-2"
+                                            title={t('common.save') || 'Save'}
+                                        >
+                                            <Save size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-white/10 space-y-4">
+                                <label className="block text-sm font-medium text-muted">{t('settings.contractDetails') || 'Contract Details'} (Strom)</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted">{t('settings.priceKwh') || 'Cents/kWh'}</label>
+                                        <input type="number" step="0.01" value={tempPriceKwhElectricity} onChange={e => setTempPriceKwhElectricity(e.target.value)} onBlur={() => onPriceKwhElectricityChange?.(tempPriceKwhElectricity)} className="w-full bg-black/20 border border-white/10 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary/50" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted">{t('settings.basePrice') || 'Base €'}</label>
+                                        <input type="number" step="0.01" value={tempBasePriceElectricity} onChange={e => setTempBasePriceElectricity(e.target.value)} onBlur={() => onBasePriceElectricityChange?.(tempBasePriceElectricity)} className="w-full bg-black/20 border border-white/10 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary/50" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted">{t('settings.monthlyPayment') || 'Payment €'}</label>
+                                        <input type="number" step="0.01" value={tempPaymentElectricity} onChange={e => setTempPaymentElectricity(e.target.value)} onBlur={() => onPaymentElectricityChange?.(tempPaymentElectricity)} className="w-full bg-black/20 border border-white/10 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary/50" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-white/10 space-y-4">
+                                <label className="block text-sm font-medium text-muted">{t('settings.contractDetails') || 'Contract Details'} (Gas)</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted">{t('settings.priceKwh') || 'Cents/kWh'}</label>
+                                        <input type="number" step="0.01" value={tempPriceKwhGas} onChange={e => setTempPriceKwhGas(e.target.value)} onBlur={() => onPriceKwhGasChange?.(tempPriceKwhGas)} className="w-full bg-black/20 border border-white/10 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary/50" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted">{t('settings.basePrice') || 'Base €'}</label>
+                                        <input type="number" step="0.01" value={tempBasePriceGas} onChange={e => setTempBasePriceGas(e.target.value)} onBlur={() => onBasePriceGasChange?.(tempBasePriceGas)} className="w-full bg-black/20 border border-white/10 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary/50" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs text-muted">{t('settings.monthlyPayment') || 'Payment €'}</label>
+                                        <input type="number" step="0.01" value={tempPaymentGas} onChange={e => setTempPaymentGas(e.target.value)} onBlur={() => onPaymentGasChange?.(tempPaymentGas)} className="w-full bg-black/20 border border-white/10 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary/50" />
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs text-muted">{t('settings.gasConversionFactor') || 'Conversion Factor'}</label>
+                                    <p className="text-[10px] text-muted-foreground/70 mb-1">{t('settings.gasConversionHelp')}</p>
+                                    <input type="number" step="0.1" value={tempGasConversionFactor} onChange={e => setTempGasConversionFactor(e.target.value)} onBlur={() => onGasConversionFactorChange?.(tempGasConversionFactor)} className="w-full bg-black/20 border border-white/10 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary/50" />
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-white/10 space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-xs text-muted">{t('settings.billingMonths') || 'Months Billed per Year'}</label>
+                                    <select value={tempBillingMonths} onChange={e => { setTempBillingMonths(e.target.value); onBillingMonthsChange?.(e.target.value); }} className="w-full bg-black/20 border border-white/10 rounded px-2 py-1.5 text-white text-sm focus:outline-none focus:ring-1 focus:ring-primary/50">
+                                        <option value="12">12</option>
+                                        <option value="11">11</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     )}

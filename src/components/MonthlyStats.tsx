@@ -7,27 +7,31 @@ import {
 } from 'recharts';
 import { format, parseISO, subYears } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
-import { BarChart3, LineChart as LineChartIcon } from 'lucide-react';
+import { BarChart3, LineChart as LineChartIcon, Thermometer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { fetchMonthlyTemperature } from '../utils/weather';
 
 interface MonthlyStatsProps {
     readings: Reading[];
     type: string;
+    locationLat?: number | null;
+    locationLon?: number | null;
 }
 
 type TimeRange = '3' | '6' | '12' | 'all';
 type ChartType = 'bar' | 'line';
 
-export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
+export function MonthlyStats({ readings, type, locationLat, locationLon }: MonthlyStatsProps) {
     const { t, i18n } = useTranslation();
     const [timeRange, setTimeRange] = useState<TimeRange>('all');
     const [chartType, setChartType] = useState<ChartType>('bar');
+    const [tempData, setTempData] = useState<Record<string, number>>({});
     const stats = useMemo(() => calculateMonthlyConsumption(readings), [readings]);
 
     // Determine date-fns locale
     const dateLocale = i18n.resolvedLanguage === 'de' ? de : enUS;
 
-    // Transform data for chart to include previous year
+    // Transform data for chart to include previous year and temperature
     const chartData = useMemo(() => {
         return stats.map(stat => {
             const date = parseISO(stat.month + '-01');
@@ -39,10 +43,37 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                 month: format(date, 'MMM yy', { locale: dateLocale }),
                 actualDate: stat.month,
                 current: Number(stat.consumption.toFixed(2)),
-                previousYear: prevYearStat ? Number(prevYearStat.consumption.toFixed(2)) : null
+                previousYear: prevYearStat ? Number(prevYearStat.consumption.toFixed(2)) : null,
+                temperature: tempData[stat.month] !== undefined ? Number(tempData[stat.month].toFixed(1)) : null
             };
         });
-    }, [stats, dateLocale]);
+    }, [stats, dateLocale, tempData]);
+
+    // Fetch weather data when stats change and type is gas
+    useMemo(() => {
+        if (type !== 'gas' || locationLat == null || locationLon == null) return;
+
+        async function loadTemperatures() {
+            const newTempData: Record<string, number> = {};
+            let hasNewData = false;
+
+            for (const stat of stats) {
+                if (tempData[stat.month] !== undefined) continue; // Already have it or it's currently failing/null
+
+                const temp = await fetchMonthlyTemperature(locationLat as number, locationLon as number, stat.month);
+                if (temp !== null) {
+                    newTempData[stat.month] = temp;
+                    hasNewData = true;
+                }
+            }
+
+            if (hasNewData) {
+                setTempData(prev => ({ ...prev, ...newTempData }));
+            }
+        }
+
+        loadTemperatures();
+    }, [stats, type, locationLat, locationLon]);
 
     const filteredData = useMemo(() => {
         if (timeRange === 'all') return chartData;
@@ -119,11 +150,22 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                                     tickLine={false}
                                 />
                                 <YAxis
+                                    yAxisId="left"
                                     tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
                                     axisLine={false}
                                     tickLine={false}
                                     unit={type === 'electricity' ? ' kWh' : ' m³'}
                                 />
+                                {type === 'gas' && locationLat && locationLon && (
+                                    <YAxis
+                                        yAxisId="right"
+                                        orientation="right"
+                                        tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        unit="°C"
+                                    />
+                                )}
                                 <Tooltip
                                     contentStyle={{
                                         backgroundColor: 'var(--surface)',
@@ -131,19 +173,16 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                                         borderRadius: '8px',
                                         color: 'var(--text)'
                                     }}
-                                    formatter={(value: number | undefined) => [value?.toFixed(2) + (type === 'electricity' ? ' kWh' : ' m³'), t('stats.consumption')]}
+                                    formatter={(value: number | undefined, name: string | undefined) => {
+                                        if (name === t('stats.temp')) return [value?.toFixed(1) + '°C', name];
+                                        return [value?.toFixed(2) + (type === 'electricity' ? ' kWh' : ' m³'), name];
+                                    }}
                                     labelStyle={{ color: 'var(--text-muted)' }}
                                     cursor={{ fill: 'var(--surface-hover)' }}
                                 />
                                 <Legend />
                                 <Bar
-                                    dataKey="current"
-                                    name={t('stats.currentYear')}
-                                    fill="var(--primary)"
-                                    radius={[4, 4, 0, 0]}
-                                    barSize={32}
-                                />
-                                <Bar
+                                    yAxisId="left"
                                     dataKey="previousYear"
                                     name={t('stats.prevYear')}
                                     fill="var(--secondary)"
@@ -151,6 +190,26 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                                     barSize={32}
                                     opacity={0.6}
                                 />
+                                <Bar
+                                    yAxisId="left"
+                                    dataKey="current"
+                                    name={t('stats.currentYear')}
+                                    fill="var(--primary)"
+                                    radius={[4, 4, 0, 0]}
+                                    barSize={32}
+                                />
+                                {type === 'gas' && locationLat && locationLon && (
+                                    <Line
+                                        yAxisId="right"
+                                        type="monotone"
+                                        dataKey="temperature"
+                                        name={t('stats.temp')}
+                                        stroke="#f97316"
+                                        strokeWidth={2}
+                                        dot={{ fill: '#f97316', r: 3 }}
+                                        activeDot={{ r: 5 }}
+                                    />
+                                )}
                             </BarChart>
                         ) : (
                             <LineChart data={filteredData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -162,11 +221,22 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                                     tickLine={false}
                                 />
                                 <YAxis
+                                    yAxisId="left"
                                     tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
                                     axisLine={false}
                                     tickLine={false}
                                     unit={type === 'electricity' ? ' kWh' : ' m³'}
                                 />
+                                {type === 'gas' && locationLat && locationLon && (
+                                    <YAxis
+                                        yAxisId="right"
+                                        orientation="right"
+                                        tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        unit="°C"
+                                    />
+                                )}
                                 <Tooltip
                                     contentStyle={{
                                         backgroundColor: 'var(--surface)',
@@ -174,20 +244,15 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                                         borderRadius: '8px',
                                         color: 'var(--text)'
                                     }}
-                                    formatter={(value: number | undefined) => [value?.toFixed(2) + (type === 'electricity' ? ' kWh' : ' m³'), t('stats.consumption')]}
+                                    formatter={(value: number | undefined, name: string | undefined) => {
+                                        if (name === t('stats.temp')) return [value?.toFixed(1) + '°C', name];
+                                        return [value?.toFixed(2) + (type === 'electricity' ? ' kWh' : ' m³'), name];
+                                    }}
                                     labelStyle={{ color: 'var(--text-muted)' }}
                                 />
                                 <Legend />
                                 <Line
-                                    type="monotone"
-                                    dataKey="current"
-                                    name={t('stats.currentYear')}
-                                    stroke="var(--primary)"
-                                    strokeWidth={3}
-                                    dot={{ fill: 'var(--primary)', r: 4 }}
-                                    activeDot={{ r: 6 }}
-                                />
-                                <Line
+                                    yAxisId="left"
                                     type="monotone"
                                     dataKey="previousYear"
                                     name={t('stats.prevYear')}
@@ -197,6 +262,28 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                                     dot={{ fill: 'var(--secondary)', r: 4 }}
                                     activeDot={{ r: 6 }}
                                 />
+                                <Line
+                                    yAxisId="left"
+                                    type="monotone"
+                                    dataKey="current"
+                                    name={t('stats.currentYear')}
+                                    stroke="var(--primary)"
+                                    strokeWidth={3}
+                                    dot={{ fill: 'var(--primary)', r: 4 }}
+                                    activeDot={{ r: 6 }}
+                                />
+                                {type === 'gas' && locationLat && locationLon && (
+                                    <Line
+                                        yAxisId="right"
+                                        type="monotone"
+                                        dataKey="temperature"
+                                        name={t('stats.temp')}
+                                        stroke="#f97316"
+                                        strokeWidth={2}
+                                        dot={{ fill: '#f97316', r: 3 }}
+                                        activeDot={{ r: 5 }}
+                                    />
+                                )}
                             </LineChart>
                         )}
                     </ResponsiveContainer>
@@ -210,6 +297,9 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                             <tr className="border-b border-white/10">
                                 <th className="p-4 font-medium text-muted">{t('stats.month')}</th>
                                 <th className="p-4 font-medium text-muted">{t('stats.consumption')}</th>
+                                {type === 'gas' && locationLat && locationLon && (
+                                    <th className="p-4 font-medium text-muted">{t('stats.temp')}</th>
+                                )}
                                 <th className="p-4 font-medium text-muted">{t('stats.comparison')}</th>
                             </tr>
                         </thead>
@@ -227,6 +317,18 @@ export function MonthlyStats({ readings, type }: MonthlyStatsProps) {
                                             {row.current.toFixed(2)}
                                             <span className="text-xs text-muted ml-1">{type === 'electricity' ? 'kWh' : 'm³'}</span>
                                         </td>
+                                        {type === 'gas' && locationLat && locationLon && (
+                                            <td className="p-4 text-orange-400">
+                                                {row.temperature !== null && row.temperature !== undefined ? (
+                                                    <div className="flex items-center gap-1">
+                                                        <Thermometer size={14} />
+                                                        {row.temperature.toFixed(1)}°C
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-muted">-</span>
+                                                )}
+                                            </td>
+                                        )}
                                         <td className="p-4">
                                             {hasPrev ? (
                                                 <span className={`flex items-center gap-1 ${diff > 0 ? 'text-red-400' : 'text-green-400'}`}>

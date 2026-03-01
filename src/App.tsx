@@ -4,6 +4,7 @@ import type { MeterType } from './types.ts';
 import { useReadings } from './hooks/useReadings';
 import { ReadingForm } from './components/ReadingForm';
 import { MonthlyStats } from './components/MonthlyStats';
+import { AnnualStats } from './components/AnnualStats';
 import { CollapsibleSection } from './components/CollapsibleSection';
 import { SettingsMenu } from './components/SettingsMenu';
 import { format, parseISO } from 'date-fns';
@@ -23,6 +24,19 @@ function App() {
   const [aiModel, setAiModel] = useState('gemini-1.5-flash');
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [locationLat, setLocationLat] = useState<number | null>(null);
+  const [locationLon, setLocationLon] = useState<number | null>(null);
+  const [locationName, setLocationName] = useState<string>('');
+  const [billingDateElectricity, setBillingDateElectricity] = useState<string>('');
+  const [billingDateGas, setBillingDateGas] = useState<string>('');
+  const [priceKwhElectricity, setPriceKwhElectricity] = useState<string>('');
+  const [basePriceElectricity, setBasePriceElectricity] = useState<string>('');
+  const [paymentElectricity, setPaymentElectricity] = useState<string>('');
+  const [priceKwhGas, setPriceKwhGas] = useState<string>('');
+  const [basePriceGas, setBasePriceGas] = useState<string>('');
+  const [paymentGas, setPaymentGas] = useState<string>('');
+  const [billingMonths, setBillingMonths] = useState<string>('12');
+  const [gasConversionFactor, setGasConversionFactor] = useState<string>('10.5');
 
   useEffect(() => {
     // Load settings from backend
@@ -37,6 +51,45 @@ function App() {
           }
           if (settings.gemini_model) {
             setAiModel(settings.gemini_model);
+          }
+          if (settings.location_lat) {
+            setLocationLat(Number(settings.location_lat));
+          }
+          if (settings.location_lon) {
+            setLocationLon(Number(settings.location_lon));
+          }
+          if (settings.location_name) {
+            setLocationName(settings.location_name);
+          }
+          if (settings.billing_date_electricity) {
+            setBillingDateElectricity(settings.billing_date_electricity);
+          }
+          if (settings.billing_date_gas) {
+            setBillingDateGas(settings.billing_date_gas);
+          }
+          if (settings.price_kwh_electricity) {
+            setPriceKwhElectricity(settings.price_kwh_electricity);
+          }
+          if (settings.base_price_electricity) {
+            setBasePriceElectricity(settings.base_price_electricity);
+          }
+          if (settings.payment_electricity) {
+            setPaymentElectricity(settings.payment_electricity);
+          }
+          if (settings.price_kwh_gas) {
+            setPriceKwhGas(settings.price_kwh_gas);
+          }
+          if (settings.base_price_gas) {
+            setBasePriceGas(settings.base_price_gas);
+          }
+          if (settings.payment_gas) {
+            setPaymentGas(settings.payment_gas);
+          }
+          if (settings.billing_months) {
+            setBillingMonths(settings.billing_months);
+          }
+          if (settings.gas_conversion_factor) {
+            setGasConversionFactor(settings.gas_conversion_factor);
           }
         }
       } catch (err) {
@@ -111,6 +164,66 @@ function App() {
     saveSetting('gemini_model', model);
   };
 
+  const handleLocationChange = (lat: number, lon: number, name: string) => {
+    setLocationLat(lat);
+    setLocationLon(lon);
+    setLocationName(name);
+    // save the location directly as settings
+    saveSetting('location_lat', String(lat));
+    saveSetting('location_lon', String(lon));
+    saveSetting('location_name', name);
+  };
+
+  const handleBillingDateElectricityChange = (date: string) => {
+    setBillingDateElectricity(date);
+    saveSetting('billing_date_electricity', date);
+  };
+
+  const handleBillingDateGasChange = (date: string) => {
+    setBillingDateGas(date);
+    saveSetting('billing_date_gas', date);
+  };
+
+  const handlePriceKwhElectricityChange = (price: string) => {
+    setPriceKwhElectricity(price);
+    saveSetting('price_kwh_electricity', price);
+  };
+
+  const handleBasePriceElectricityChange = (price: string) => {
+    setBasePriceElectricity(price);
+    saveSetting('base_price_electricity', price);
+  };
+
+  const handlePaymentElectricityChange = (payment: string) => {
+    setPaymentElectricity(payment);
+    saveSetting('payment_electricity', payment);
+  };
+
+  const handlePriceKwhGasChange = (price: string) => {
+    setPriceKwhGas(price);
+    saveSetting('price_kwh_gas', price);
+  };
+
+  const handleBasePriceGasChange = (price: string) => {
+    setBasePriceGas(price);
+    saveSetting('base_price_gas', price);
+  };
+
+  const handlePaymentGasChange = (payment: string) => {
+    setPaymentGas(payment);
+    saveSetting('payment_gas', payment);
+  };
+
+  const handleBillingMonthsChange = (months: string) => {
+    setBillingMonths(months);
+    saveSetting('billing_months', months);
+  };
+
+  const handleGasConversionFactorChange = (factor: string) => {
+    setGasConversionFactor(factor);
+    saveSetting('gas_conversion_factor', factor);
+  };
+
   const fetchModels = async (key: string) => {
     if (!key) return;
     setIsLoadingModels(true);
@@ -152,6 +265,28 @@ function App() {
         onRefreshModels={() => fetchModels(apiKey)}
         onImport={handleImport}
         onExport={handleExport}
+        locationName={locationName}
+        onLocationChange={handleLocationChange}
+        billingDateElectricity={billingDateElectricity}
+        onBillingDateElectricityChange={handleBillingDateElectricityChange}
+        billingDateGas={billingDateGas}
+        onBillingDateGasChange={handleBillingDateGasChange}
+        priceKwhElectricity={priceKwhElectricity}
+        onPriceKwhElectricityChange={handlePriceKwhElectricityChange}
+        basePriceElectricity={basePriceElectricity}
+        onBasePriceElectricityChange={handleBasePriceElectricityChange}
+        paymentElectricity={paymentElectricity}
+        onPaymentElectricityChange={handlePaymentElectricityChange}
+        priceKwhGas={priceKwhGas}
+        onPriceKwhGasChange={handlePriceKwhGasChange}
+        basePriceGas={basePriceGas}
+        onBasePriceGasChange={handleBasePriceGasChange}
+        paymentGas={paymentGas}
+        onPaymentGasChange={handlePaymentGasChange}
+        billingMonths={billingMonths}
+        onBillingMonthsChange={handleBillingMonthsChange}
+        gasConversionFactor={gasConversionFactor}
+        onGasConversionFactorChange={handleGasConversionFactorChange}
       />
 
       <header className="mb-8 pt-4 flex justify-between items-start">
@@ -203,7 +338,25 @@ function App() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl">{t('sections.analysis')}</h2>
             </div>
-            <MonthlyStats readings={currentReadings} type={activeTab} />
+            <div className="space-y-6">
+              <MonthlyStats
+                readings={currentReadings}
+                type={activeTab}
+                locationLat={locationLat}
+                locationLon={locationLon}
+              />
+
+              <AnnualStats
+                readings={currentReadings}
+                type={activeTab}
+                billingDateInput={activeTab === 'electricity' ? billingDateElectricity : billingDateGas}
+                priceKwh={activeTab === 'electricity' ? priceKwhElectricity : priceKwhGas}
+                basePrice={activeTab === 'electricity' ? basePriceElectricity : basePriceGas}
+                payment={activeTab === 'electricity' ? paymentElectricity : paymentGas}
+                billingMonths={billingMonths}
+                gasConversionFactor={gasConversionFactor}
+              />
+            </div>
           </section>
         </div>
       </div>

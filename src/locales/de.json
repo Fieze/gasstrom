@@ -76,7 +76,25 @@
         "prevYear": "Vorjahr",
         "month": "Monat",
         "consumption": "Verbrauch",
-        "comparison": "Vergleich Vorjahr"
+        "comparison": "Vergleich Vorjahr",
+        "temp": "⌀ Temp"
+    },
+    "annual": {
+        "title": "Jahresverbrauch & Prognose",
+        "forecast": "Prognose (laufendes Jahr)",
+        "currentPeriod": "Bisheriger Verbrauch",
+        "projectedTotal": "Projizierter Jahresverbrauch",
+        "comparison": "Vergleich zum Vorjahreszeitraum",
+        "noHistory": "Noch nicht genug Daten für eine Jahresprognose.",
+        "projectedCost": "Erwartete Kosten",
+        "projectedCostHelp": "Basierend auf der Prognose und deinen eingegebenen Vertragskonditionen",
+        "currentPayment": "Aktueller Abschlag",
+        "recommendedPayment": "Empfohlener Abschlag",
+        "recommendedPaymentHelp": "Um Nachzahlungen zu vermeiden (Gesamtkosten / Abschläge pro Jahr)",
+        "difference": "Erwartete Differenz",
+        "refund": "Rückerstattung",
+        "paymentDue": "Nachzahlung",
+        "configureSettings": "Bitte trage in den Einstellungen einen Stichtag für die Jahresabrechnung ein."
     },
     "settings": {
         "title": "Einstellungen",
@@ -94,7 +112,20 @@
         "createBackupNow": "Backup jetzt erstellen",
         "confirmRestore": "Bist du sicher, dass du dieses Backup wiederherstellen möchtest? Die aktuellen Daten werden überschrieben.",
         "restoreSuccess": "Wiederherstellung erfolgreich. Die Seite wird neu geladen.",
-        "restoreError": "Fehler bei der Wiederherstellung."
+        "restoreError": "Fehler bei der Wiederherstellung.",
+        "location": "Standort (PLZ oder Stadt)",
+        "locationSearch": "Suchen",
+        "locationFound": "Gefunden: {{name}}",
+        "billingDateElectricity": "Stichtag Jahresabrechnung (Strom)",
+        "billingDateGas": "Stichtag Jahresabrechnung (Gas)",
+        "billingDateHelp": "Tag und Monat der letzten Abrechnung (z.B. 15.05.)",
+        "contractDetails": "Vertragskonditionen",
+        "priceKwh": "Arbeitspreis (Cent/kWh)",
+        "basePrice": "Grundpreis (€/Monat)",
+        "monthlyPayment": "Abschlag (€/Monat)",
+        "billingMonths": "Abschläge pro Jahr (z.B. 11 oder 12)",
+        "gasConversionFactor": "Umrechnungsfaktor (m³ -> kWh)",
+        "gasConversionHelp": "Oft ca. 9,5 bis 11,5. Findest du auf deiner letzten Gasrechnung."
     },
     "common": {
         "save": "Speichern",
