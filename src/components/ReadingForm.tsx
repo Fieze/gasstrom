@@ -8,28 +8,27 @@ import { useTranslation } from 'react-i18next';
 
 interface ReadingFormProps {
     type: MeterType;
-    onSubmit: (reading: Reading) => void;
-    apiKey: string;
-    model: string;
+    onSubmit: (reading: Reading) => Promise<boolean>;
+    aiEnabled: boolean;
 }
 
-export function ReadingForm({ type, onSubmit, apiKey, model }: ReadingFormProps) {
+export function ReadingForm({ type, onSubmit, aiEnabled }: ReadingFormProps) {
     const { t } = useTranslation();
     const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [value, setValue] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!value || !date) return;
 
-        onSubmit({
-            id: uuidv4(),
-            date,
-            value: parseFloat(value),
-            type
-        });
-
-        setValue('');
+        setIsSaving(true);
+        try {
+            const saved = await onSubmit({ id: uuidv4(), date, value: parseFloat(value), type });
+            if (saved) setValue('');
+        } finally {
+            setIsSaving(false);
+        }
         // Optionally keep date or reset to today
         // setDate(format(new Date(), 'yyyy-MM-dd'));
     };
@@ -48,8 +47,7 @@ export function ReadingForm({ type, onSubmit, apiKey, model }: ReadingFormProps)
         <div className="card space-y-6">
             <PhotoAnalyzer
                 onAnalysisComplete={handleAnalysisResult}
-                apiKey={apiKey}
-                model={model}
+                enabled={aiEnabled}
             />
 
             <div className="w-full h-px bg-white/10" />
@@ -83,10 +81,11 @@ export function ReadingForm({ type, onSubmit, apiKey, model }: ReadingFormProps)
 
                 <button
                     type="submit"
-                    className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 text-lg"
+                    disabled={isSaving}
+                    className="w-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 text-lg"
                 >
                     <Plus size={20} />
-                    {t('readingForm.add')}
+                    {isSaving ? t('common.loading') : t('readingForm.add')}
                 </button>
             </form>
         </div>

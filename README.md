@@ -16,7 +16,7 @@ GasStrom is a modern web application designed to help you track and analyze your
 
 - **Frontend**: React 19, TypeScript, Vite
 - **Styling**: Modern CSS with utility classes (Tailwind-like system), Lucide Icons
-- **Data Persistence**: Dexie.js (IndexedDB wrapper) & SQLite (Server-side)
+- **Data Persistence**: SQLite through the local Express API
 - **AI Integration**: Google Generative AI SDK (Gemini)
 - **Visualization**: Recharts
 - **Internationalization**: i18next (English & German support)
@@ -86,11 +86,17 @@ For local development, we recommend using `npm` directly instead of Docker.
 ## ⚙️ Configuration
 
 ### Gemini AI API Key
-To use the **Photo Analyzer** feature, you need a Google Gemini API Key.
-1.  Get your key from [Google AI Studio](https://aistudio.google.com/app/apikey).
-2.  In the app, click the **Settings** (gear icon) in the Photo Analyzer section.
-3.  Enter your API Key and save.
-4.  The key is stored locally in your browser/app settings.
+To use the **Photo Analyzer** feature, set `GEMINI_API_KEY` on the server. The key is never sent to the browser or stored in SQLite. See `.env.example` and `SECURITY.md` for supported deployment profiles.
+
+### Production operations
+
+- Persist both `DB_PATH` and `BACKUP_DIR`; the included Compose file stores them below `/app/data`.
+- Configure the exact external origin through `ALLOWED_ORIGINS`.
+- Configure a strong `ACCESS_TOKEN`; production refuses a public bind without it or an explicitly trusted authenticating proxy. Keep `COOKIE_SECURE=true` behind HTTPS.
+- Pin deployments with `GASSTROM_IMAGE=ghcr.io/fieze/gasstrom:sha-<commit>` instead of relying on the mutable `latest` tag.
+- Verify `/api/health` after upgrades and periodically test a backup restore.
+- Public exposure requires authentication at an HTTPS reverse proxy; CORS is not access control.
+- Calculation and meter-reset rules are documented in `docs/calculation-rules.md`.
 
 ## 📄 License
 

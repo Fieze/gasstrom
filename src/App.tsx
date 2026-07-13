@@ -1,26 +1,32 @@
 
 import { useState, useEffect } from 'react';
-import type { MeterType } from './types.ts';
+import type { MeterType, Reading } from './types.ts';
 import { useReadings } from './hooks/useReadings';
 import { ReadingForm } from './components/ReadingForm';
 import { MonthlyStats } from './components/MonthlyStats';
 import { AnnualStats } from './components/AnnualStats';
 import { CollapsibleSection } from './components/CollapsibleSection';
 import { SettingsMenu } from './components/SettingsMenu';
+import { LoginScreen } from './components/LoginScreen';
+import { ReadingEditDialog } from './components/ReadingEditDialog';
+import { ImportPreviewDialog } from './components/ImportPreviewDialog';
+import { analyzeReadingImport, type ImportAnalysis } from './utils/readingValidation';
+import { apiRequest } from './api/client';
 import { format, parseISO } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
-import { Zap, Flame, Settings, Trash2 } from 'lucide-react';
+import { Zap, Flame, Settings, Trash2, LogOut, Pencil, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 function App() {
-  const { readings, addReading, removeReading, importReadings, getReadingsByType } = useReadings();
+  const [authState, setAuthState] = useState({ checking: true, required: false, authenticated: false });
+  const { readings, isLoading: readingsLoading, error: readingsError, notice, setNotice, addReading, updateReading, removeReading, importReadings, getReadingsByType } = useReadings(authState.authenticated);
   const [activeTab, setActiveTab] = useState<MeterType>('electricity');
   const currentReadings = getReadingsByType(activeTab);
   const { t, i18n } = useTranslation();
 
   // Settings State
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [apiKey, setApiKey] = useState('');
+  const [aiConfigured, setAiConfigured] = useState(false);
   const [aiModel, setAiModel] = useState('gemini-1.5-flash');
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
@@ -37,18 +43,33 @@ function App() {
   const [paymentGas, setPaymentGas] = useState<string>('');
   const [billingMonths, setBillingMonths] = useState<string>('12');
   const [gasConversionFactor, setGasConversionFactor] = useState<string>('10.5');
+  const [editingReading, setEditingReading] = useState<Reading | null>(null);
+  const [importAnalysis, setImportAnalysis] = useState<ImportAnalysis | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [operationError, setOperationError] = useState<string | null>(null);
 
   useEffect(() => {
+    const checkAuthentication = async () => {
+      try {
+        const status = await apiRequest<{ required: boolean; authenticated: boolean }>('/api/auth/status');
+        setAuthState({ checking: false, ...status });
+      } catch {
+        setAuthState({ checking: false, required: true, authenticated: false });
+      }
+    };
+    const requireAuthentication = () => setAuthState(previous => ({ ...previous, checking: false, authenticated: false }));
+    window.addEventListener('gasstrom:unauthorized', requireAuthentication);
+    void checkAuthentication();
+    return () => window.removeEventListener('gasstrom:unauthorized', requireAuthentication);
+  }, []);
+
+  useEffect(() => {
+    if (!authState.authenticated) return;
     // Load settings from backend
     const loadSettings = async () => {
       try {
-        const res = await fetch('/api/settings');
-        if (res.ok) {
-          const settings = await res.json();
-          if (settings.gemini_api_key) {
-            setApiKey(settings.gemini_api_key);
-            fetchModels(settings.gemini_api_key);
-          }
+          const settings = await apiRequest<Record<string, string>>('/api/settings');
+          setAiConfigured(Boolean(settings.gemini_configured));
           if (settings.gemini_model) {
             setAiModel(settings.gemini_model);
           }
@@ -91,13 +112,13 @@ function App() {
           if (settings.gas_conversion_factor) {
             setGasConversionFactor(settings.gas_conversion_factor);
           }
-        }
       } catch (err) {
         console.error('Failed to load settings', err);
+        setOperationError(err instanceof Error ? err.message : 'Failed to load settings');
       }
     };
     loadSettings();
-  }, []);
+  }, [authState.authenticated]);
 
   const dateLocale = i18n.resolvedLanguage === 'de' ? de : enUS;
 
@@ -117,47 +138,43 @@ function App() {
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const text = e.target?.result;
-        if (typeof text !== 'string') return;
-        const data = JSON.parse(text);
-        if (Array.isArray(data)) {
-          const success = await importReadings(data);
-          if (success) {
-            alert(t('sections.importExport.success'));
-          } else {
-            alert(t('sections.importExport.errorImport'));
-          }
-        }
-      } catch (err) {
-        console.error('Import error', err);
-        alert(t('sections.importExport.errorRead'));
-      }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
-  };
-
-  const saveSetting = async (key: string, value: string) => {
     try {
-      await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [key]: value })
-      });
+      const data: unknown = JSON.parse(await file.text());
+      if (!Array.isArray(data)) throw new Error('Import must contain an array');
+      setImportAnalysis(analyzeReadingImport(data, readings));
     } catch (err) {
-      console.error('Failed to save setting', err);
+      console.error('Import error', err);
+      alert(t('sections.importExport.errorRead'));
+    } finally {
+      event.target.value = '';
     }
   };
 
-  const handleApiKeyChange = (key: string) => {
-    setApiKey(key);
-    saveSetting('gemini_api_key', key);
-    fetchModels(key);
+  const confirmImport = async () => {
+    if (!importAnalysis || importAnalysis.issues.length > 0) return;
+    setIsImporting(true);
+    const success = await importReadings(importAnalysis.readings);
+    setIsImporting(false);
+    if (success) setImportAnalysis(null);
   };
+
+  const saveSettings = async (settings: Record<string, string>) => {
+    try {
+      setOperationError(null);
+      await apiRequest('/api/settings', {
+        method: 'POST',
+        body: JSON.stringify(settings)
+      });
+      setNotice('feedback.settingsSaved');
+      return true;
+    } catch (err) {
+      console.error('Failed to save setting', err);
+      setOperationError(err instanceof Error ? err.message : 'Failed to save settings');
+      return false;
+    }
+  };
+
+  const saveSetting = (key: string, value: string) => void saveSettings({ [key]: value });
 
   const handleModelChange = (model: string) => {
     setAiModel(model);
@@ -169,9 +186,7 @@ function App() {
     setLocationLon(lon);
     setLocationName(name);
     // save the location directly as settings
-    saveSetting('location_lat', String(lat));
-    saveSetting('location_lon', String(lon));
-    saveSetting('location_name', name);
+    void saveSettings({ location_lat: String(lat), location_lon: String(lon), location_name: name });
   };
 
   const handleBillingDateElectricityChange = (date: string) => {
@@ -224,17 +239,14 @@ function App() {
     saveSetting('gas_conversion_factor', factor);
   };
 
-  const fetchModels = async (key: string) => {
-    if (!key) return;
+  async function fetchModels() {
     setIsLoadingModels(true);
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+      const response = await fetch('/api/ai/models');
       if (response.ok) {
         const data = await response.json();
-        if (data.models) {
-          const models = data.models
-            .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
-            .map((m: any) => m.name.replace('models/', ''));
+        if (Array.isArray(data.models)) {
+          const models = data.models.filter((model: unknown): model is string => typeof model === 'string');
           setAvailableModels(models);
 
           if (!models.includes(aiModel)) {
@@ -248,21 +260,33 @@ function App() {
     } finally {
       setIsLoadingModels(false);
     }
+  }
+
+  const handleLogout = async () => {
+    try {
+      setOperationError(null);
+      await apiRequest('/api/auth/logout', { method: 'POST' });
+      setAuthState({ checking: false, required: true, authenticated: false });
+    } catch (error) {
+      setOperationError(error instanceof Error ? error.message : 'Logout failed');
+    }
   };
+
+  if (authState.checking) return <main className="min-h-screen flex items-center justify-center text-muted">{t('common.loading')}</main>;
+  if (!authState.authenticated) return <LoginScreen onAuthenticated={() => setAuthState(previous => ({ ...previous, authenticated: true }))} />;
 
 
   return (
     <div className="min-h-screen pb-20">
-      <SettingsMenu
+      {isSettingsOpen && <SettingsMenu
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        apiKey={apiKey}
-        onApiKeyChange={handleApiKeyChange}
+        aiConfigured={aiConfigured}
         model={aiModel}
         onModelChange={handleModelChange}
         availableModels={availableModels}
         isLoadingModels={isLoadingModels}
-        onRefreshModels={() => fetchModels(apiKey)}
+        onRefreshModels={fetchModels}
         onImport={handleImport}
         onExport={handleExport}
         locationName={locationName}
@@ -287,21 +311,27 @@ function App() {
         onBillingMonthsChange={handleBillingMonthsChange}
         gasConversionFactor={gasConversionFactor}
         onGasConversionFactorChange={handleGasConversionFactorChange}
-      />
+      />}
 
       <header className="mb-8 pt-4 flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold mb-2">{t('app.title')}</h1>
           <p className="text-muted">{t('app.subtitle')}</p>
         </div>
-        <button
-          onClick={() => setIsSettingsOpen(true)}
-          className="p-3 bg-surface hover:bg-surface-hover text-muted hover:text-white rounded-lg transition-colors border border-white/10"
-          title={t('settings.title') || 'Settings'}
-        >
-          <Settings size={24} />
-        </button>
+        <div className="flex gap-2">
+          {authState.required && <button onClick={handleLogout} className="p-3 bg-surface hover:bg-surface-hover text-muted hover:text-white rounded-lg transition-colors border border-white/10" title={t('auth.logout')}><LogOut size={24} /></button>}
+          <button onClick={() => setIsSettingsOpen(true)} className="p-3 bg-surface hover:bg-surface-hover text-muted hover:text-white rounded-lg transition-colors border border-white/10" title={t('settings.title') || 'Settings'}><Settings size={24} /></button>
+        </div>
       </header>
+
+      {readingsError && (
+        <div role="alert" className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300">
+          {readingsError}
+        </div>
+      )}
+      {operationError && <div role="alert" className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 flex items-center justify-between"><span>{operationError}</span><button onClick={() => setOperationError(null)} aria-label={t('common.close')}><X size={18} /></button></div>}
+      {notice && <div role="status" className="mb-6 p-4 rounded-lg bg-green-500/10 border border-green-500/30 text-green-300 flex items-center justify-between"><span>{t(notice)}</span><button onClick={() => setNotice(null)} aria-label={t('common.close')}><X size={18} /></button></div>}
+      {readingsLoading && <p className="mb-6 text-sm text-muted">{t('common.loading')}</p>}
 
       <div className="flex gap-6 mb-8">
         <button
@@ -327,8 +357,7 @@ function App() {
             <ReadingForm
               type={activeTab}
               onSubmit={addReading}
-              apiKey={apiKey}
-              model={aiModel}
+              aiEnabled={aiConfigured}
             />
           </section>
         </div>
@@ -390,13 +419,10 @@ function App() {
                         {reading.value.toFixed(2)} {activeTab === 'electricity' ? 'kWh' : 'm³'}
                       </div>
                     </div>
-                    <button
-                      onClick={() => removeReading(reading.id)}
-                      className="absolute top-2 right-2 p-1.5 text-muted hover:text-red-400 hover:bg-red-400/10 rounded-full opacity-0 group-hover:opacity-100 transition-all"
-                      title={t('sections.history.delete')}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all">
+                      <button onClick={() => setEditingReading(reading)} className="p-1.5 text-muted hover:text-blue-400 hover:bg-blue-400/10 rounded-full" title={t('sections.history.edit')}><Pencil size={16} /></button>
+                      <button onClick={() => removeReading(reading.id)} className="p-1.5 text-muted hover:text-red-400 hover:bg-red-400/10 rounded-full" title={t('sections.history.delete')}><Trash2 size={16} /></button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -404,6 +430,8 @@ function App() {
           </div>
         </CollapsibleSection>
       </div>
+      {editingReading && <ReadingEditDialog reading={editingReading} onSave={updateReading} onClose={() => setEditingReading(null)} />}
+      {importAnalysis && <ImportPreviewDialog analysis={importAnalysis} onConfirm={confirmImport} onClose={() => setImportAnalysis(null)} isImporting={isImporting} />}
     </div>
   );
 }

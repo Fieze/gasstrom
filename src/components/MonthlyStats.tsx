@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Reading } from '../types';
-import { calculateMonthlyConsumption } from '../utils/calculations';
+import { calculateMonthlyConsumption, findReadingIssues } from '../utils/calculations';
 import {
     BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
     Tooltip, Legend, ResponsiveContainer
@@ -27,6 +27,7 @@ export function MonthlyStats({ readings, type, locationLat, locationLon }: Month
     const [chartType, setChartType] = useState<ChartType>('bar');
     const [tempData, setTempData] = useState<Record<string, number>>({});
     const stats = useMemo(() => calculateMonthlyConsumption(readings), [readings]);
+    const readingIssues = useMemo(() => findReadingIssues(readings), [readings]);
 
     // Determine date-fns locale
     const dateLocale = i18n.resolvedLanguage === 'de' ? de : enUS;
@@ -50,8 +51,10 @@ export function MonthlyStats({ readings, type, locationLat, locationLon }: Month
     }, [stats, dateLocale, tempData]);
 
     // Fetch weather data when stats change and type is gas
-    useMemo(() => {
+    useEffect(() => {
         if (type !== 'gas' || locationLat == null || locationLon == null) return;
+        const latitude = locationLat;
+        const longitude = locationLon;
 
         async function loadTemperatures() {
             const newTempData: Record<string, number> = {};
@@ -60,7 +63,7 @@ export function MonthlyStats({ readings, type, locationLat, locationLon }: Month
             for (const stat of stats) {
                 if (tempData[stat.month] !== undefined) continue; // Already have it or it's currently failing/null
 
-                const temp = await fetchMonthlyTemperature(locationLat as number, locationLon as number, stat.month);
+                const temp = await fetchMonthlyTemperature(latitude, longitude, stat.month);
                 if (temp !== null) {
                     newTempData[stat.month] = temp;
                     hasNewData = true;
@@ -73,7 +76,7 @@ export function MonthlyStats({ readings, type, locationLat, locationLon }: Month
         }
 
         loadTemperatures();
-    }, [stats, type, locationLat, locationLon]);
+    }, [stats, type, locationLat, locationLon, tempData]);
 
     const filteredData = useMemo(() => {
         if (timeRange === 'all') return chartData;
@@ -91,6 +94,14 @@ export function MonthlyStats({ readings, type, locationLat, locationLon }: Month
 
     return (
         <div className="space-y-6">
+            {readingIssues.length > 0 && (
+                <div role="status" className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 text-sm">
+                    <p className="font-medium">{t('stats.dataWarnings', { count: readingIssues.length })}</p>
+                    <ul className="mt-2 list-disc list-inside text-xs text-muted">
+                        {readingIssues.map((issue, index) => <li key={`${issue.type}-${issue.date}-${index}`}>{t(`stats.issue.${issue.type}`, { date: issue.date, previousDate: issue.previousDate })}</li>)}
+                    </ul>
+                </div>
+            )}
             <div className="card flex flex-col">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                     <h3 className="text-lg font-semibold">{t('stats.monthlyAverage')}</h3>
@@ -173,9 +184,10 @@ export function MonthlyStats({ readings, type, locationLat, locationLon }: Month
                                         borderRadius: '8px',
                                         color: 'var(--text)'
                                     }}
-                                    formatter={(value: number | undefined, name: string | undefined) => {
-                                        if (name === t('stats.temp')) return [value?.toFixed(1) + '°C', name];
-                                        return [value?.toFixed(2) + (type === 'electricity' ? ' kWh' : ' m³'), name];
+                                    formatter={(value, name) => {
+                                        const numericValue = typeof value === 'number' ? value : Number(value);
+                                        if (name === t('stats.temp')) return [`${numericValue.toFixed(1)}°C`, String(name ?? '')];
+                                        return [`${numericValue.toFixed(2)}${type === 'electricity' ? ' kWh' : ' m³'}`, String(name ?? '')];
                                     }}
                                     labelStyle={{ color: 'var(--text-muted)' }}
                                     cursor={{ fill: 'var(--surface-hover)' }}
@@ -244,9 +256,10 @@ export function MonthlyStats({ readings, type, locationLat, locationLon }: Month
                                         borderRadius: '8px',
                                         color: 'var(--text)'
                                     }}
-                                    formatter={(value: number | undefined, name: string | undefined) => {
-                                        if (name === t('stats.temp')) return [value?.toFixed(1) + '°C', name];
-                                        return [value?.toFixed(2) + (type === 'electricity' ? ' kWh' : ' m³'), name];
+                                    formatter={(value, name) => {
+                                        const numericValue = typeof value === 'number' ? value : Number(value);
+                                        if (name === t('stats.temp')) return [`${numericValue.toFixed(1)}°C`, String(name ?? '')];
+                                        return [`${numericValue.toFixed(2)}${type === 'electricity' ? ' kWh' : ' m³'}`, String(name ?? '')];
                                     }}
                                     labelStyle={{ color: 'var(--text-muted)' }}
                                 />

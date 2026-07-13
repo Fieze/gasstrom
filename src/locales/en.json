@@ -19,7 +19,8 @@
         "history": {
             "title": "History",
             "empty": "No entries yet.",
-            "delete": "Delete"
+            "delete": "Delete",
+            "edit": "Edit"
         },
         "importExport": {
             "title": "Data Import / Export",
@@ -35,8 +36,6 @@
         "analyze": "Analyze",
         "analyzing": "Analyzing...",
         "noText": "No text detected",
-        "apiKeyRequired": "API Key required",
-        "apiKeyLink": "create here",
         "placeholderKey": "Enter Google Gemini API Key",
         "saveKey": "Save",
         "readingFound": "Detected Reading",
@@ -45,7 +44,7 @@
         "cameraError": "Could not start camera",
         "capture": "Capture Photo",
         "stopClient": "Stop Camera",
-        "alertKeyMissing": "Please save your Gemini API Key in settings first.",
+        "alertKeyMissing": "Gemini is not configured on the server.",
         "statusReading": "Reading metadata...",
         "statusSending": "Sending to Gemini...",
         "alertKeyInvalid": "API Key invalid or unauthorized",
@@ -64,7 +63,8 @@
     "readingForm": {
         "date": "Reading Date",
         "reading": "Meter Reading",
-        "add": "Add"
+        "add": "Add",
+        "edit": "Edit meter reading"
     },
     "stats": {
         "monthlyAverage": "Monthly Average Consumption",
@@ -77,7 +77,12 @@
         "month": "Month",
         "consumption": "Consumption",
         "comparison": "Comparison Prev. Year",
-        "temp": "⌀ Temp"
+        "temp": "⌀ Temp",
+        "dataWarnings": "{{count}} data warning(s)",
+        "issue": {
+            "duplicate_date": "Multiple readings on {{date}}; calculations use the highest value.",
+            "meter_reset": "Meter decreased between {{previousDate}} and {{date}}; this unknown interval is excluded."
+        }
     },
     "annual": {
         "title": "Annual Consumption & Forecast",
@@ -102,7 +107,9 @@
         "ai": "AI Configuration",
         "data": "Data",
         "language": "Language",
-        "apiKey": "Gemini API Key",
+        "aiConfigured": "Gemini is configured on the server",
+        "aiNotConfigured": "Gemini is not configured",
+        "aiServerHint": "The API key is read from GEMINI_API_KEY on the server and is never sent to the browser.",
         "model": "Model",
         "exportData": "Export Data",
         "importData": "Import Data",
@@ -131,5 +138,29 @@
         "save": "Save",
         "close": "Close",
         "loading": "Loading..."
+    },
+    "auth": {
+        "title": "Protected access",
+        "description": "Enter the access token configured on the server.",
+        "accessToken": "Access token",
+        "login": "Sign in",
+        "logout": "Sign out",
+        "loginFailed": "Sign-in failed"
+    },
+    "feedback": {
+        "readingAdded": "Meter reading saved.",
+        "readingUpdated": "Meter reading updated.",
+        "readingDeleted": "Meter reading deleted.",
+        "importCompleted": "Import completed successfully.",
+        "settingsSaved": "Settings saved."
+    },
+    "importPreview": {
+        "title": "Review import",
+        "valid": "Valid",
+        "conflicts": "Conflicts",
+        "errors": "Errors",
+        "conflictHint": "Existing entries with the same ID will be replaced during import.",
+        "row": "Row {{row}}",
+        "confirm": "Import"
     }
 }
