@@ -11,7 +11,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "node --test server",
+    "test": "node --test server/auth.test.js server/calculations.test.js server/database.test.js server/validation.test.js",
     "preview": "vite preview",
     "server": "node server/index.js",
     "start": "concurrently \"npm run server\" \"npm run dev\""
