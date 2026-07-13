@@ -25,7 +25,7 @@ GasStrom is a modern web application designed to help you track and analyze your
 
 ### Prerequisites
 
-- Node.js (v18 or higher recommended)
+- Node.js 24.18.0 LTS and npm 12.0.1
 - npm or yarn
 
 ### Installation
