@@ -15,8 +15,10 @@ WORKDIR /app
 
 # Copy package.json for production install
 COPY package.json package-lock.json ./
-# Install only production dependencies
-RUN npm ci --omit=dev
+# Patch Alpine packages, install only production dependencies, and remove build metadata.
+RUN apk upgrade --no-cache \
+  && npm ci --omit=dev \
+  && rm package-lock.json
 
 # Copy backend code
 COPY server ./server
