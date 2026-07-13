@@ -11,7 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
-server/database.sqlite
+.env
+.env.*
+!.env.example
+server/database.sqlite*
 server/backups/
 data/
 

@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
-import { X, Globe, Save, RefreshCw, Upload, Download, Key, Cpu, RotateCcw } from 'lucide-react';
+import { X, Globe, Save, RefreshCw, Upload, Download, ShieldCheck, ShieldAlert, Cpu, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 
 interface SettingsMenuProps {
     isOpen: boolean;
     onClose: () => void;
-    apiKey: string;
-    onApiKeyChange: (key: string) => void;
+    aiConfigured: boolean;
     model: string;
     onModelChange: (model: string) => void;
     availableModels: string[];
@@ -47,8 +46,7 @@ interface Backup {
 export function SettingsMenu({
     isOpen,
     onClose,
-    apiKey,
-    onApiKeyChange,
+    aiConfigured,
     model,
     onModelChange,
     availableModels,
@@ -80,7 +78,6 @@ export function SettingsMenu({
     onGasConversionFactorChange
 }: SettingsMenuProps) {
     const { t } = useTranslation();
-    const [tempKey, setTempKey] = useState(apiKey);
     const [activeTab, setActiveTab] = useState<'general' | 'ai' | 'data'>('general');
     const [backups, setBackups] = useState<Backup[]>([]);
     const [selectedBackup, setSelectedBackup] = useState<string>('');
@@ -102,37 +99,12 @@ export function SettingsMenu({
     const [tempGasConversionFactor, setTempGasConversionFactor] = useState(gasConversionFactor);
 
     useEffect(() => {
-        setTempKey(apiKey);
-    }, [apiKey]);
-
-    useEffect(() => {
-        setTempLocation(locationName);
-    }, [locationName]);
-
-    useEffect(() => {
-        setTempBillingDateElectricity(billingDateElectricity);
-    }, [billingDateElectricity]);
-
-    useEffect(() => {
-        setTempBillingDateGas(billingDateGas);
-    }, [billingDateGas]);
-
-    useEffect(() => { setTempPriceKwhElectricity(priceKwhElectricity); }, [priceKwhElectricity]);
-    useEffect(() => { setTempBasePriceElectricity(basePriceElectricity); }, [basePriceElectricity]);
-    useEffect(() => { setTempPaymentElectricity(paymentElectricity); }, [paymentElectricity]);
-    useEffect(() => { setTempPriceKwhGas(priceKwhGas); }, [priceKwhGas]);
-    useEffect(() => { setTempBasePriceGas(basePriceGas); }, [basePriceGas]);
-    useEffect(() => { setTempPaymentGas(paymentGas); }, [paymentGas]);
-    useEffect(() => { setTempBillingMonths(billingMonths); }, [billingMonths]);
-    useEffect(() => { setTempGasConversionFactor(gasConversionFactor); }, [gasConversionFactor]);
-
-    useEffect(() => {
         if (isOpen && activeTab === 'data') {
             fetchBackups();
         }
     }, [isOpen, activeTab]);
 
-    const fetchBackups = async () => {
+    async function fetchBackups() {
         setIsLoadingBackups(true);
         try {
             const res = await fetch('/api/backups');
@@ -145,7 +117,7 @@ export function SettingsMenu({
         } finally {
             setIsLoadingBackups(false);
         }
-    };
+    }
 
     const handleRestore = async () => {
         if (!selectedBackup) return;
@@ -412,33 +384,15 @@ export function SettingsMenu({
                     {/* AI Tab */}
                     {activeTab === 'ai' && (
                         <div className="space-y-6">
-                            <div className="space-y-3">
-                                <label className="flex items-center gap-2 text-sm font-medium text-muted">
-                                    <Key size={16} />
-                                    {t('settings.apiKey') || 'Gemini API Key'}
-                                </label>
-                                <p className="text-xs text-muted">
-                                    {t('photoAnalyzer.apiKeyRequired')} (<a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">{t('photoAnalyzer.apiKeyLink')}</a>).
-                                </p>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="password"
-                                        value={tempKey}
-                                        onChange={(e) => setTempKey(e.target.value)}
-                                        placeholder="AIza..."
-                                        className="flex-1 bg-black/20 border border-white/10 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                    />
-                                    <button
-                                        onClick={() => onApiKeyChange(tempKey)}
-                                        className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded flex items-center gap-2"
-                                        title={t('common.save') || 'Save'}
-                                    >
-                                        <Save size={18} />
-                                    </button>
+                            <div className={`p-4 rounded-lg border ${aiConfigured ? 'bg-green-500/10 border-green-500/30' : 'bg-yellow-500/10 border-yellow-500/30'}`}>
+                                <div className="flex items-center gap-2 font-medium">
+                                    {aiConfigured ? <ShieldCheck size={18} className="text-green-400" /> : <ShieldAlert size={18} className="text-yellow-400" />}
+                                    {aiConfigured ? t('settings.aiConfigured') : t('settings.aiNotConfigured')}
                                 </div>
+                                <p className="text-xs text-muted mt-2">{t('settings.aiServerHint')}</p>
                             </div>
 
-                            {apiKey && (
+                            {aiConfigured && (
                                 <div className="space-y-3 pt-4 border-t border-white/10">
                                     <div className="flex items-center justify-between">
                                         <label className="text-sm font-medium text-muted">{t('settings.model') || 'Model'}</label>

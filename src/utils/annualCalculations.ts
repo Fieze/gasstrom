@@ -1,10 +1,11 @@
-import { isBefore, isAfter, differenceInDays, parseISO, startOfDay, addYears, getYear } from 'date-fns';
+import { addDays, differenceInCalendarDays, format, getYear, isAfter, isBefore, parseISO, startOfDay } from 'date-fns';
 import type { Reading } from '../types';
+import { calculateConsumptionBetween, normalizeReadings } from './calculations';
 
 export interface AnnualConsumption {
-    periodStart: string; // ISO date string
-    periodEnd: string;   // ISO date string
-    label: string;       // e.g. "2023/2024"
+    periodStart: string;
+    periodEnd: string;
+    label: string;
     consumption: number;
     days: number;
     isCurrent: boolean;
@@ -13,7 +14,7 @@ export interface AnnualConsumption {
 export interface ForecastData {
     currentConsumption: number;
     projectedTotal: number;
-    percentageChange: number | null; // null if no previous data to compare
+    percentageChange: number | null;
     daysElapsed: number;
     projectedTotalKwh?: number;
     projectedCost?: number;
@@ -22,211 +23,93 @@ export interface ForecastData {
     recommendedPayment?: number;
 }
 
-/**
- * Calculates historical annual consumption periods based on a billing date (DD.MM.).
- */
+function billingDate(year: number, month: number, day: number) {
+    const date = startOfDay(new Date(year, month, day));
+    if (date.getMonth() === month && date.getDate() === day) return date;
+    if (month === 1 && day === 29) return startOfDay(new Date(year, 1, 28));
+    return null;
+}
+
 export function calculateAnnualConsumption(readings: Reading[], billingDateInput: string): AnnualConsumption[] {
-    if (!readings || readings.length < 2 || !billingDateInput) return [];
-
-    // Parse the billing date input (expecting "DD.MM.")
-    const parts = billingDateInput.split('.');
-    if (parts.length < 2) return [];
-
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // JS months are 0-indexed
-
-    if (isNaN(day) || isNaN(month)) return [];
-
-    const sortedReadings = [...readings].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    const firstReadingDate = startOfDay(parseISO(sortedReadings[0].date));
-    const lastReadingDate = startOfDay(parseISO(sortedReadings[sortedReadings.length - 1].date));
-
-    // Find the very first generic billing Date *before or equal to* the first reading
-    let currentPeriodStart = new Date(firstReadingDate);
-    currentPeriodStart.setMonth(month, day);
-    if (isAfter(currentPeriodStart, firstReadingDate)) {
-        currentPeriodStart = addYears(currentPeriodStart, -1);
-    }
+    if (readings.length < 2 || !/^\d{1,2}\.\d{1,2}\.$/.test(billingDateInput)) return [];
+    const [day, oneBasedMonth] = billingDateInput.split('.').map(Number);
+    const month = oneBasedMonth - 1;
+    const sorted = normalizeReadings(readings);
+    const firstDate = startOfDay(parseISO(sorted[0].date));
+    const lastDate = startOfDay(parseISO(sorted[sorted.length - 1].date));
+    let periodStart = billingDate(firstDate.getFullYear(), month, day);
+    if (!periodStart) return [];
+    if (isAfter(periodStart, firstDate)) periodStart = billingDate(firstDate.getFullYear() - 1, month, day);
+    if (!periodStart) return [];
 
     const periods: AnnualConsumption[] = [];
-
-    // Iterate through years until we pass the last reading
-    while (isBefore(currentPeriodStart, lastReadingDate) || currentPeriodStart.getTime() === lastReadingDate.getTime()) {
-        const periodEnd = addYears(currentPeriodStart, 1);
-
-        const periodReadingStart = interpolateReading(sortedReadings, currentPeriodStart);
-        const periodReadingEnd = interpolateReading(sortedReadings, periodEnd);
-
-        // Only add periods where we actually have SOME data coverage
-        if (periodReadingStart !== null && periodReadingEnd !== null) {
-            const consumption = periodReadingEnd - periodReadingStart;
-            const days = differenceInDays(periodEnd, currentPeriodStart);
-
+    const today = startOfDay(new Date());
+    while (!isAfter(periodStart, lastDate)) {
+        const nominalEnd = billingDate(periodStart.getFullYear() + 1, month, day);
+        if (!nominalEnd) break;
+        const effectiveEnd = isAfter(nominalEnd, lastDate) ? lastDate : nominalEnd;
+        const consumption = calculateConsumptionBetween(sorted, periodStart, effectiveEnd);
+        const current = !isBefore(today, periodStart) && isBefore(today, nominalEnd);
+        const complete = !isAfter(nominalEnd, lastDate);
+        if (consumption !== null && (complete || current)) {
             periods.push({
-                periodStart: currentPeriodStart.toISOString(),
-                periodEnd: periodEnd.toISOString(),
-                label: `${getYear(currentPeriodStart)}/${getYear(periodEnd)}`,
-                consumption: Math.max(0, consumption),
-                days,
-                isCurrent: isAfter(new Date(), currentPeriodStart) && isBefore(new Date(), periodEnd)
+                periodStart: format(periodStart, 'yyyy-MM-dd'),
+                periodEnd: format(nominalEnd, 'yyyy-MM-dd'),
+                label: `${getYear(periodStart)}/${getYear(nominalEnd)}`,
+                consumption,
+                days: differenceInCalendarDays(nominalEnd, periodStart),
+                isCurrent: current
             });
         }
-
-        currentPeriodStart = periodEnd;
+        periodStart = nominalEnd;
     }
-
-    // Reverse so newest is first
     return periods.reverse();
 }
 
-/**
- * Calculates a forecast for the current ongoing billing period.
- */
 export function calculateForecast(
-    readings: Reading[],
-    billingDateInput: string,
-    periods: AnnualConsumption[],
-    priceKwh?: string,
-    basePrice?: string,
-    payment?: string,
-    billingMonths?: string,
-    gasConversionFactor?: string,
-    type?: string
+    readings: Reading[], billingDateInput: string, periods: AnnualConsumption[],
+    priceKwh?: string, basePrice?: string, payment?: string, billingMonths?: string,
+    gasConversionFactor?: string, type?: string
 ): ForecastData | null {
-    if (!readings || readings.length < 2 || !billingDateInput || !periods || periods.length === 0) return null;
-
-    const currentPeriod = periods.find(p => p.isCurrent);
-    if (!currentPeriod) return null; // No active period
-
-    const sortedReadings = [...readings].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    const lastReadingDate = startOfDay(parseISO(sortedReadings[sortedReadings.length - 1].date));
-
-    const periodStart = parseISO(currentPeriod.periodStart);
-
-    if (isBefore(lastReadingDate, periodStart)) return null; // Last reading is before the current period started
-
-    const daysElapsed = differenceInDays(lastReadingDate, periodStart);
+    if (readings.length < 2 || !billingDateInput || periods.length === 0) return null;
+    const currentPeriod = periods.find(period => period.isCurrent);
+    if (!currentPeriod) return null;
+    const sorted = normalizeReadings(readings);
+    const lastReadingDate = startOfDay(parseISO(sorted[sorted.length - 1].date));
+    const periodStart = startOfDay(parseISO(currentPeriod.periodStart));
+    const daysElapsed = differenceInCalendarDays(lastReadingDate, periodStart);
     if (daysElapsed <= 0) return null;
+    const currentConsumption = calculateConsumptionBetween(sorted, periodStart, lastReadingDate);
+    if (currentConsumption === null) return null;
 
-    // Get current consumption so far
-    const currentValStart = interpolateReading(sortedReadings, periodStart) ?? 0;
-    const currentValEnd = sortedReadings[sortedReadings.length - 1].value;
-    const currentConsumption = Math.max(0, currentValEnd - currentValStart);
-
-    // Look at previous completed periods to find average historical consumption
-    const completedPeriods = periods.filter(p => !p.isCurrent);
-
-    // We need at least one completed year to do a solid comparison
-    if (completedPeriods.length === 0) {
-        // Fallback: simple linear extrapolation if no history
-        const projectedTotal = (currentConsumption / daysElapsed) * currentPeriod.days;
-        return {
-            currentConsumption,
-            projectedTotal,
-            percentageChange: null,
-            daysElapsed
-        };
+    const completedPeriods = periods.filter(period => !period.isCurrent);
+    let percentageChange: number | null = null;
+    let projectedTotal = (currentConsumption / daysElapsed) * currentPeriod.days;
+    if (completedPeriods.length > 0) {
+        const previous = completedPeriods[0];
+        const previousStart = startOfDay(parseISO(previous.periodStart));
+        const comparableEnd = addDays(previousStart, daysElapsed);
+        const historical = calculateConsumptionBetween(sorted, previousStart, comparableEnd);
+        if (historical !== null && historical > 0) {
+            percentageChange = ((currentConsumption - historical) / historical) * 100;
+            projectedTotal = previous.consumption * (1 + percentageChange / 100);
+        }
     }
 
-    // 1. Find consumption in the EXACT same timeframe in the previous year
-    const lastYearPeriod = completedPeriods[0]; // most recent completed year
-    const lastYearStart = parseISO(lastYearPeriod.periodStart);
-    const lastYearComparisonEnd = new Date(lastYearStart);
-    lastYearComparisonEnd.setDate(lastYearComparisonEnd.getDate() + daysElapsed);
-
-    const valLastYearStart = interpolateReading(sortedReadings, lastYearStart) ?? 0;
-    const valLastYearEnd = interpolateReading(sortedReadings, lastYearComparisonEnd) ?? valLastYearStart;
-
-    const historicalConsumptionSoFar = Math.max(0, valLastYearEnd - valLastYearStart);
-
-    // 2. Calculate percentage change
-    let percentageChange = null;
-    let projectedTotal = 0;
-
-    if (historicalConsumptionSoFar > 0) {
-        percentageChange = ((currentConsumption - historicalConsumptionSoFar) / historicalConsumptionSoFar) * 100;
-
-        // 3. Apply percentage change to the total of the previous year
-        projectedTotal = lastYearPeriod.consumption * (1 + (percentageChange / 100));
-    } else {
-        // Fallback to linear if we can't comparably extrapolate
-        projectedTotal = (currentConsumption / daysElapsed) * currentPeriod.days;
-    }
-
-    // Add financial projections if parameters are available
-    let financialData = {};
+    const forecast: ForecastData = { currentConsumption, projectedTotal: Math.max(0, projectedTotal), percentageChange, daysElapsed };
     if (priceKwh && basePrice && payment && billingMonths) {
-        const pKwh = parseFloat(priceKwh) / 100; // Cent to Euro
-        const bPrice = parseFloat(basePrice);
-        const pmt = parseFloat(payment);
-        const bMonths = parseFloat(billingMonths);
-        const factor = parseFloat(gasConversionFactor || '10.5');
-
-        if (!isNaN(pKwh) && !isNaN(bPrice) && !isNaN(pmt) && !isNaN(bMonths)) {
-            const projectedTotalKwh = type === 'gas' ? projectedTotal * factor : projectedTotal;
-            const projectedCost = (projectedTotalKwh * pKwh) + (bPrice * 12);
-            const annualPayment = pmt * bMonths;
-            const paymentDifference = annualPayment - projectedCost; // positive means refund, negative means owe
-            const recommendedPayment = projectedCost / bMonths;
-
-            financialData = {
-                projectedTotalKwh,
-                projectedCost,
-                annualPayment,
-                paymentDifference,
-                recommendedPayment
-            };
+        const unitPrice = Number(priceKwh) / 100;
+        const monthlyBasePrice = Number(basePrice);
+        const monthlyPayment = Number(payment);
+        const numberOfPayments = Number(billingMonths);
+        const conversionFactor = Number(gasConversionFactor || '10.5');
+        if ([unitPrice, monthlyBasePrice, monthlyPayment, numberOfPayments, conversionFactor].every(Number.isFinite) && numberOfPayments > 0) {
+            forecast.projectedTotalKwh = type === 'gas' ? forecast.projectedTotal * conversionFactor : forecast.projectedTotal;
+            forecast.projectedCost = forecast.projectedTotalKwh * unitPrice + monthlyBasePrice * 12;
+            forecast.annualPayment = monthlyPayment * numberOfPayments;
+            forecast.paymentDifference = forecast.annualPayment - forecast.projectedCost;
+            forecast.recommendedPayment = forecast.projectedCost / numberOfPayments;
         }
     }
-
-    return {
-        currentConsumption,
-        projectedTotal: Math.max(0, projectedTotal),
-        percentageChange,
-        daysElapsed,
-        ...financialData
-    };
-}
-
-/**
- * Helper to interpolate a meter reading at a specific exact date.
- */
-function interpolateReading(readings: Reading[], targetDate: Date): number | null {
-    if (readings.length === 0) return null;
-
-    const targetTime = targetDate.getTime();
-
-    // Exact match?
-    const exactMatch = readings.find(r => startOfDay(parseISO(r.date)).getTime() === targetTime);
-    if (exactMatch) return exactMatch.value;
-
-    // Find closest before and after
-    let before: Reading | null = null;
-    let after: Reading | null = null;
-
-    for (const r of readings) {
-        const t = startOfDay(parseISO(r.date)).getTime();
-        if (t < targetTime) {
-            if (!before || t > startOfDay(parseISO(before.date)).getTime()) {
-                before = r;
-            }
-        }
-        if (t > targetTime) {
-            if (!after || t < startOfDay(parseISO(after.date)).getTime()) {
-                after = r;
-            }
-        }
-    }
-
-    // Extrapolate if outside bounds
-    if (!before && after) return after.value; // Clamp to first known value
-    if (before && !after) return before.value; // Clamp to last known value
-    if (!before || !after) return null;
-
-    // Interpolate between bounds
-    const tBefore = startOfDay(parseISO(before.date)).getTime();
-    const tAfter = startOfDay(parseISO(after.date)).getTime();
-
-    const ratio = (targetTime - tBefore) / (tAfter - tBefore);
-    return before.value + (after.value - before.value) * ratio;
+    return forecast;
 }

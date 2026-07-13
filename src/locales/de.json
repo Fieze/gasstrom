@@ -19,7 +19,8 @@
         "history": {
             "title": "Historie",
             "empty": "Noch keine Einträge vorhanden.",
-            "delete": "Löschen"
+            "delete": "Löschen",
+            "edit": "Bearbeiten"
         },
         "importExport": {
             "title": "Daten Import / Export",
@@ -35,8 +36,6 @@
         "analyze": "Analysieren",
         "analyzing": "Analysiere...",
         "noText": "Kein Text erkannt",
-        "apiKeyRequired": "API Key erforderlich",
-        "apiKeyLink": "hier erstellen",
         "placeholderKey": "Google Gemini API Key eingeben",
         "saveKey": "Speichern",
         "readingFound": "Erkannter Zählerstand",
@@ -45,7 +44,7 @@
         "cameraError": "Kamera konnte nicht gestartet werden",
         "capture": "Foto aufnehmen",
         "stopClient": "Kamera stoppen",
-        "alertKeyMissing": "Bitte speichere zuerst deinen Gemini API Key in den Einstellungen.",
+        "alertKeyMissing": "Gemini ist auf dem Server nicht konfiguriert.",
         "statusReading": "Lese Metadaten...",
         "statusSending": "Sende an Gemini...",
         "alertKeyInvalid": "API Key ungültig oder nicht berechtigt",
@@ -64,7 +63,8 @@
     "readingForm": {
         "date": "Datum der Ablesung",
         "reading": "Zählerstand",
-        "add": "Hinzufügen"
+        "add": "Hinzufügen",
+        "edit": "Zählerstand bearbeiten"
     },
     "stats": {
         "monthlyAverage": "Monatlicher Durchschnittsverbrauch",
@@ -77,7 +77,12 @@
         "month": "Monat",
         "consumption": "Verbrauch",
         "comparison": "Vergleich Vorjahr",
-        "temp": "⌀ Temp"
+        "temp": "⌀ Temp",
+        "dataWarnings": "{{count}} Datenhinweis(e)",
+        "issue": {
+            "duplicate_date": "Mehrere Ablesungen am {{date}}; für Berechnungen wird der höchste Wert verwendet.",
+            "meter_reset": "Zählerrückgang zwischen {{previousDate}} und {{date}}; dieses unbekannte Intervall wird ausgelassen."
+        }
     },
     "annual": {
         "title": "Jahresverbrauch & Prognose",
@@ -102,7 +107,9 @@
         "ai": "KI Konfiguration",
         "data": "Daten",
         "language": "Sprache",
-        "apiKey": "Gemini API Key",
+        "aiConfigured": "Gemini ist serverseitig konfiguriert",
+        "aiNotConfigured": "Gemini ist nicht konfiguriert",
+        "aiServerHint": "Der API-Schlüssel wird aus GEMINI_API_KEY auf dem Server gelesen und niemals an den Browser übertragen.",
         "model": "Modell",
         "exportData": "Daten exportieren",
         "importData": "Daten importieren",
@@ -131,5 +138,29 @@
         "save": "Speichern",
         "close": "Schließen",
         "loading": "Laden..."
+    },
+    "auth": {
+        "title": "Geschützter Zugriff",
+        "description": "Gib das auf dem Server konfigurierte Zugriffstoken ein.",
+        "accessToken": "Zugriffstoken",
+        "login": "Anmelden",
+        "logout": "Abmelden",
+        "loginFailed": "Anmeldung fehlgeschlagen"
+    },
+    "feedback": {
+        "readingAdded": "Zählerstand gespeichert.",
+        "readingUpdated": "Zählerstand aktualisiert.",
+        "readingDeleted": "Zählerstand gelöscht.",
+        "importCompleted": "Import erfolgreich abgeschlossen.",
+        "settingsSaved": "Einstellungen gespeichert."
+    },
+    "importPreview": {
+        "title": "Import prüfen",
+        "valid": "Gültig",
+        "conflicts": "Konflikte",
+        "errors": "Fehler",
+        "conflictHint": "Vorhandene Einträge mit gleicher ID werden beim Import ersetzt.",
+        "row": "Zeile {{row}}",
+        "confirm": "Importieren"
     }
 }

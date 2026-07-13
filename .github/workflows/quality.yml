@@ -1,0 +1,46 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches: [main, release]
+
+permissions:
+  contents: read
+
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint -- --max-warnings=0
+      - run: npm run build
+      - run: npm audit --audit-level=critical
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: critical
+
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --tag gasstrom:test .
+      - uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: gasstrom:test
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH

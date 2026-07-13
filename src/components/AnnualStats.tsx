@@ -56,9 +56,10 @@ export function AnnualStats({
     }
 
     // Prepare chart data
-    const chartData = [...periods]
+    const chartData: Array<{ label: string; consumption?: number; forecast?: number; current?: number }> = [...periods]
         .filter(p => !p.isCurrent) // Only show completed years as solid bars
-        .slice(-5); // Keep the last 5 years maximum
+        .slice(-5)
+        .map(period => ({ label: period.label, consumption: period.consumption })); // Keep the last 5 years maximum
 
     // Add the forecast bar at the end
     if (forecast && periods.some(p => p.isCurrent)) {
@@ -68,7 +69,7 @@ export function AnnualStats({
             consumption: 0,
             forecast: forecast.projectedTotal,
             current: forecast.currentConsumption
-        } as any);
+        });
     }
 
     const unit = type === 'electricity' ? 'kWh' : 'm³';
@@ -194,11 +195,12 @@ export function AnnualStats({
                                 borderRadius: '8px',
                                 color: 'var(--text)'
                             }}
-                            formatter={(value: number | undefined, name: string | undefined) => {
-                                if (value === undefined) return ['', ''];
-                                if (name === 'forecast') return [`${value.toFixed(0)} ${unit}`, t('annual.forecast') || 'Prognose'];
-                                if (name === 'current') return [`${value.toFixed(0)} ${unit}`, t('annual.currentPeriod') || 'Bisheriger Verbrauch'];
-                                return [`${value.toFixed(0)} ${unit}`, t('stats.consumption')];
+                            formatter={(value, name) => {
+                                const numericValue = typeof value === 'number' ? value : Number(value);
+                                if (!Number.isFinite(numericValue)) return ['', ''];
+                                if (name === 'forecast') return [`${numericValue.toFixed(0)} ${unit}`, t('annual.forecast') || 'Prognose'];
+                                if (name === 'current') return [`${numericValue.toFixed(0)} ${unit}`, t('annual.currentPeriod') || 'Bisheriger Verbrauch'];
+                                return [`${numericValue.toFixed(0)} ${unit}`, t('stats.consumption')];
                             }}
                             labelStyle={{ color: 'var(--text-muted)' }}
                             cursor={{ fill: 'var(--surface-hover)' }}
