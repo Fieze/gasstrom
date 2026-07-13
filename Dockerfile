@@ -17,6 +17,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 # Patch Alpine packages, install only production dependencies, and remove build metadata.
 RUN apk upgrade --no-cache \
+  && npm install --global npm@12.0.1 \
   && npm ci --omit=dev \
   && rm package-lock.json
 
